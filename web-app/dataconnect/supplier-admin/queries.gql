@@ -1,0 +1,26 @@
+query AdminListSuppliers($limit: Int = 1000, $offset: Int = 0) @auth(level: NO_ACCESS) {
+  suppliers(limit: $limit, offset: $offset, orderBy: { supplierCode: ASC }) {
+    supplierCode
+    supplierName
+    supplierType
+    creditDays
+    creditLimit
+    expressAccountCode
+    addressText
+    phoneText
+    contactName
+    taxId
+    email
+    branchName
+    isActive
+    lastImportId
+  }
+}
+
+query AdminGetImportRunByHash($sourceFileHash: String!) @auth(level: NO_ACCESS) {
+  supplierImportRuns(where: { sourceFileHash: { eq: $sourceFileHash } }, limit: 1) {
+    id
+    sourceFileName
+    importedAt
+  }
+}

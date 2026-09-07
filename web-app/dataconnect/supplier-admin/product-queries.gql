@@ -1,0 +1,21 @@
+query AdminListProducts($limit: Int = 2000, $offset: Int = 0) @auth(level: NO_ACCESS) {
+  products(limit: $limit, offset: $offset, orderBy: { productCode: ASC }) {
+    productCode productName largeDescription
+    category { categoryCode categoryName }
+    supplier { supplierCode }
+    smallUnit largeUnit purchaseUnit purchaseFactor salesUnit salesFactor
+    accountCode standardPrice replacementText isActive lastImportId
+  }
+}
+
+query AdminListProductCategories($limit: Int = 100, $offset: Int = 0) @auth(level: NO_ACCESS) {
+  productCategories(limit: $limit, offset: $offset, orderBy: { categoryCode: ASC }) {
+    categoryCode categoryName isActive lastImportId
+  }
+}
+
+query AdminGetProductImportRunByHash($sourceFileHash: String!) @auth(level: NO_ACCESS) {
+  productImportRuns(where: { sourceFileHash: { eq: $sourceFileHash } }, limit: 1) {
+    id sourceFileName importedAt
+  }
+}

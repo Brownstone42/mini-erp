@@ -1,0 +1,33 @@
+mutation AdminImportStockSnapshot(
+  $rows: [StockSnapshot_Data!]! @allow(
+    fields: "sourceKey snapshotDate warehouseFrom warehouseTo productCode sourceProductName quantity sourceUnitText unitCost inventoryValue lotMismatch isActive lastImportId updatedAt"
+    maxCount: 5000
+  )
+  $lots: [StockSnapshotLot_Data!]! @allow(
+    fields: "sourceKey snapshotKey snapshotDate warehouseFrom warehouseTo productCode sourceOccurrence receivedDate lotReference quantity unitCost inventoryValue isActive lastImportId updatedAt"
+    maxCount: 10000
+  )
+  $sourceKeys: [String!]! $lotSourceKeys: [String!]!
+  $snapshotDate: Date! $warehouseFrom: String! $warehouseTo: String! $importId: UUID! $now: Timestamp!
+  $importRun: StockImportRun_Data! @allow(
+    fields: "id sourceFileName sourceFileHash snapshotDate warehouseFrom warehouseTo totalRows lotRows lotMismatchCount createdCount updatedCount unchangedCount deactivatedCount importedByUid importedAt"
+  )
+) @auth(level: NO_ACCESS) @transaction {
+  importedRows: stockSnapshot_upsertMany(data: $rows)
+  importedLots: stockSnapshotLot_upsertMany(data: $lots)
+  deactivatedRows: stockSnapshot_updateMany(
+    where: {
+      snapshotDate: { eq: $snapshotDate }, warehouseFrom: { eq: $warehouseFrom }, warehouseTo: { eq: $warehouseTo },
+      sourceKey: { nin: $sourceKeys }, isActive: { eq: true }
+    }
+    data: { isActive: false, lastImportId: $importId, updatedAt: $now }
+  )
+  deactivatedLots: stockSnapshotLot_updateMany(
+    where: {
+      snapshotDate: { eq: $snapshotDate }, warehouseFrom: { eq: $warehouseFrom }, warehouseTo: { eq: $warehouseTo },
+      sourceKey: { nin: $lotSourceKeys }, isActive: { eq: true }
+    }
+    data: { isActive: false, lastImportId: $importId, updatedAt: $now }
+  )
+  audit: stockImportRun_insert(data: $importRun)
+}

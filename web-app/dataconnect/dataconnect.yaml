@@ -1,0 +1,13 @@
+specVersion: "v1"
+serviceId: "mini-erp-service"
+location: "asia-southeast1"
+schemas:
+  - source: "./schema"
+    datasource:
+      postgresql:
+        database: "minierp"
+        cloudSql:
+          instanceId: "mini-erp-postgres"
+          # schemaValidation: "STRICT"     # STRICT mode makes Postgres schema match Data Connect exactly.
+          # schemaValidation: "COMPATIBLE" # COMPATIBLE mode makes Postgres schema compatible with Data Connect.
+connectorDirs: ["./supplier-web", "./supplier-admin"]

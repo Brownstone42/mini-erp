@@ -1,0 +1,17 @@
+mutation AdminImportPurchaseHistory(
+  $rows: [PurchaseHistoryLine_Data!]! @allow(
+    fields: "sourceKey sourceOccurrence transactionDate documentNumber productCode supplierCode sourceQuantity sourceUnitText isReturn unitPrice sourceVatCode lineDiscountText grossAmount overallDiscountText netAmount referenceText purchaseFactor analysisQuantity analysisNetAmount isActive lastImportId updatedAt"
+    maxCount: 6000
+  )
+  $sourceKeys: [String!]! $periodStart: Date! $periodEnd: Date! $importId: UUID! $now: Timestamp!
+  $importRun: PurchaseHistoryImportRun_Data! @allow(
+    fields: "id sourceFileName sourceFileHash periodStart periodEnd totalRows createdCount updatedCount unchangedCount deactivatedCount importedByUid importedAt"
+  )
+) @auth(level: NO_ACCESS) @transaction {
+  importedRows: purchaseHistoryLine_upsertMany(data: $rows)
+  deactivatedRows: purchaseHistoryLine_updateMany(
+    where: { transactionDate: { ge: $periodStart, le: $periodEnd }, sourceKey: { nin: $sourceKeys }, isActive: { eq: true } }
+    data: { isActive: false, lastImportId: $importId, updatedAt: $now }
+  )
+  audit: purchaseHistoryImportRun_insert(data: $importRun)
+}

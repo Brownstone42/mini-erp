@@ -1,0 +1,13 @@
+query AdminListPurchaseHistoryForPeriod($periodStart: Date!, $periodEnd: Date!, $limit: Int = 6000, $offset: Int = 0) @auth(level: NO_ACCESS) {
+  purchaseHistoryLines(where: { transactionDate: { ge: $periodStart, le: $periodEnd } }, limit: $limit, offset: $offset, orderBy: { sourceKey: ASC }) {
+    sourceKey sourceOccurrence transactionDate documentNumber
+    product { productCode }
+    supplier { supplierCode }
+    sourceQuantity sourceUnitText isReturn unitPrice sourceVatCode lineDiscountText grossAmount overallDiscountText netAmount referenceText
+    purchaseFactor analysisQuantity analysisNetAmount isActive lastImportId
+  }
+}
+
+query AdminGetPurchaseHistoryImportRunByHash($sourceFileHash: String!) @auth(level: NO_ACCESS) {
+  purchaseHistoryImportRuns(where: { sourceFileHash: { eq: $sourceFileHash } }, limit: 1) { id importedAt }
+}

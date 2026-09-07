@@ -1,0 +1,40 @@
+query ListSuppliers($limit: Int = 1000, $offset: Int = 0)
+  @auth(
+    level: USER
+    insecureReason: "Supplier master data is shared company data and is intentionally readable by every authenticated non-anonymous ERP user."
+  ) {
+  suppliers(limit: $limit, offset: $offset, orderBy: { supplierCode: ASC }) {
+    supplierCode
+    supplierName
+    supplierType
+    taxId
+    phoneText
+    creditDays
+    isActive
+    updatedAt
+  }
+}
+
+query GetSupplier($supplierCode: String!)
+  @auth(
+    level: USER
+    insecureReason: "Supplier master data is shared company data and is intentionally readable by every authenticated non-anonymous ERP user."
+  ) {
+  supplier(key: { supplierCode: $supplierCode }) {
+    supplierCode
+    supplierName
+    supplierType
+    creditDays
+    creditLimit
+    expressAccountCode
+    addressText
+    phoneText
+    contactName
+    taxId
+    email
+    branchName
+    isActive
+    createdAt
+    updatedAt
+  }
+}

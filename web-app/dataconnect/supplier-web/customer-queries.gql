@@ -1,0 +1,49 @@
+query ListCustomers($limit: Int = 1100, $offset: Int = 0)
+  @auth(
+    level: USER
+    insecureReason: "Customer master data is shared company data and is intentionally readable by every authenticated non-anonymous ERP user."
+  ) {
+  customers(limit: $limit, offset: $offset, orderBy: { customerCode: ASC }) {
+    customerCode
+    customerName
+    customerType
+    salespersonCode
+    salesTerritory
+    taxId
+    phoneText
+    creditDays
+    isActive
+    updatedAt
+  }
+}
+
+query GetCustomer($customerCode: String!)
+  @auth(
+    level: USER
+    insecureReason: "Customer master data is shared company data and is intentionally readable by every authenticated non-anonymous ERP user."
+  ) {
+  customer(key: { customerCode: $customerCode }) {
+    customerCode
+    customerName
+    customerType
+    salespersonCode
+    salesTerritory
+    priceType
+    addressText
+    postalCode
+    contactName
+    expressAccountCode
+    shippingMethod
+    creditDays
+    creditLimit
+    phoneText
+    paymentTerms
+    taxId
+    branchName
+    email
+    noteText
+    isActive
+    createdAt
+    updatedAt
+  }
+}

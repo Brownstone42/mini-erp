@@ -1,0 +1,29 @@
+mutation AdminImportProducts(
+  $categories: [ProductCategory_Data!]! @allow(
+    fields: "categoryCode categoryName isActive lastImportId updatedAt"
+    maxCount: 100
+  )
+  $products: [Product_Data!]! @allow(
+    fields: "productCode productName largeDescription categoryCode supplierCode smallUnit largeUnit purchaseUnit purchaseFactor salesUnit salesFactor accountCode standardPrice replacementText isActive lastImportId updatedAt"
+    maxCount: 2000
+  )
+  $categoryCodes: [String!]!
+  $productCodes: [String!]!
+  $importId: UUID!
+  $now: Timestamp!
+  $importRun: ProductImportRun_Data! @allow(
+    fields: "id sourceFileName sourceFileHash totalRows categoryRows createdCount updatedCount reactivatedCount deactivatedCount importedByUid importedAt"
+  )
+) @auth(level: NO_ACCESS) @transaction {
+  importedCategories: productCategory_upsertMany(data: $categories)
+  importedProducts: product_upsertMany(data: $products)
+  deactivatedProducts: product_updateMany(
+    where: { productCode: { nin: $productCodes }, isActive: { eq: true } }
+    data: { isActive: false, lastImportId: $importId, updatedAt: $now }
+  )
+  deactivatedCategories: productCategory_updateMany(
+    where: { categoryCode: { nin: $categoryCodes }, isActive: { eq: true } }
+    data: { isActive: false, lastImportId: $importId, updatedAt: $now }
+  )
+  audit: productImportRun_insert(data: $importRun)
+}

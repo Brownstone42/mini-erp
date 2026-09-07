@@ -1,0 +1,9 @@
+query ListPurchaseHistory($limit: Int = 6000, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Purchase History is readable by authenticated ERP users.") {
+  purchaseHistoryLines(limit: $limit, offset: $offset, orderBy: { transactionDate: DESC }) {
+    sourceKey transactionDate documentNumber sourceQuantity sourceUnitText isReturn unitPrice netAmount referenceText
+    purchaseFactor analysisQuantity analysisNetAmount isActive
+    product { productCode productName }
+    supplier { supplierCode supplierName }
+  }
+}

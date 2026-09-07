@@ -1,0 +1,19 @@
+mutation AdminImportCustomers(
+  $customers: [Customer_Data!]! @allow(
+    fields: "customerCode customerName customerType salespersonCode salesTerritory priceType addressText postalCode contactName expressAccountCode shippingMethod creditDays creditLimit phoneText paymentTerms taxId branchName email noteText isActive lastImportId updatedAt"
+    maxCount: 2000
+  )
+  $customerCodes: [String!]!
+  $importId: UUID!
+  $now: Timestamp!
+  $importRun: CustomerImportRun_Data! @allow(
+    fields: "id sourceFileName sourceFileHash totalRows createdCount updatedCount reactivatedCount deactivatedCount importedByUid importedAt"
+  )
+) @auth(level: NO_ACCESS) @transaction {
+  deactivated: customer_updateMany(
+    where: { customerCode: { nin: $customerCodes }, isActive: { eq: true } }
+    data: { isActive: false, lastImportId: $importId, updatedAt: $now }
+  )
+  imported: customer_upsertMany(data: $customers)
+  audit: customerImportRun_insert(data: $importRun)
+}

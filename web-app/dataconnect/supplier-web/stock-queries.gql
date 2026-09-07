@@ -1,0 +1,11 @@
+query ListStockSnapshots($limit: Int = 5000, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Stock Snapshots are readable by authenticated ERP users.") {
+  stockSnapshots(limit: $limit, offset: $offset, orderBy: { snapshotDate: DESC }) {
+    sourceKey snapshotDate warehouseFrom warehouseTo sourceProductName quantity sourceUnitText
+    unitCost inventoryValue lotMismatch isActive updatedAt
+    product { productCode productName }
+  }
+  stockSnapshotLots(limit: 10000, orderBy: { receivedDate: DESC }) {
+    sourceKey snapshotKey receivedDate lotReference quantity unitCost inventoryValue isActive
+  }
+}

@@ -1,0 +1,22 @@
+query AdminListStockSnapshot(
+  $snapshotDate: Date!, $warehouseFrom: String!, $warehouseTo: String!, $limit: Int = 5000, $offset: Int = 0
+) @auth(level: NO_ACCESS) {
+  stockSnapshots(
+    where: { snapshotDate: { eq: $snapshotDate }, warehouseFrom: { eq: $warehouseFrom }, warehouseTo: { eq: $warehouseTo } }
+    limit: $limit, offset: $offset, orderBy: { sourceKey: ASC }
+  ) {
+    sourceKey snapshotDate warehouseFrom warehouseTo productCode sourceProductName quantity sourceUnitText
+    unitCost inventoryValue lotMismatch isActive lastImportId
+  }
+  stockSnapshotLots(
+    where: { snapshotDate: { eq: $snapshotDate }, warehouseFrom: { eq: $warehouseFrom }, warehouseTo: { eq: $warehouseTo } }
+    limit: 10000, offset: $offset, orderBy: { sourceKey: ASC }
+  ) {
+    sourceKey snapshotKey snapshotDate warehouseFrom warehouseTo productCode sourceOccurrence receivedDate
+    lotReference quantity unitCost inventoryValue isActive lastImportId
+  }
+}
+
+query AdminGetStockImportRunByHash($sourceFileHash: String!) @auth(level: NO_ACCESS) {
+  stockImportRuns(where: { sourceFileHash: { eq: $sourceFileHash } }, limit: 1) { id importedAt }
+}

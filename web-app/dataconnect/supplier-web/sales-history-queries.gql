@@ -1,0 +1,24 @@
+query ListSalesHistory($limit: Int = 6000, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Sales History is readable by authenticated ERP users.") {
+  salesHistoryLines(limit: $limit, offset: $offset, orderBy: { transactionDate: DESC }) {
+    sourceKey transactionDate documentNumber sourceQuantity sourceUnitText isReturn
+    unitPrice netAmount referenceText analysisQuantity analysisNetAmount isActive
+    product { productCode productName }
+    customer { customerCode customerName }
+  }
+}
+
+query GetSalesDocument($documentNumber: String!, $limit: Int = 100)
+  @auth(level: USER, insecureReason: "Sales History is readable by authenticated ERP users.") {
+  salesHistoryLines(
+    where: { documentNumber: { eq: $documentNumber } }
+    limit: $limit
+    orderBy: { sourceKey: ASC }
+  ) {
+    sourceKey transactionDate documentNumber sourceQuantity sourceUnitText isReturn
+    unitPrice sourceVatCode lineDiscountText grossAmount overallDiscountText netAmount
+    referenceText noteText salesFactor analysisQuantity analysisNetAmount isActive
+    product { productCode productName }
+    customer { customerCode customerName }
+  }
+}

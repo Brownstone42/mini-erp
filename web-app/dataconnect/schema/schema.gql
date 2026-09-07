@@ -1,0 +1,277 @@
+type Supplier @table(name: "suppliers", key: "supplierCode") {
+  supplierCode: String! @col(name: "supplier_code")
+  supplierName: String! @col(name: "supplier_name") @searchable
+  supplierType: String @col(name: "supplier_type")
+  creditDays: Int @col(name: "credit_days")
+  creditLimit: Float @col(name: "credit_limit", dataType: "numeric(18,2)")
+  expressAccountCode: String @col(name: "express_account_code")
+  addressText: String @col(name: "address_text")
+  phoneText: String @col(name: "phone_text")
+  contactName: String @col(name: "contact_name")
+  taxId: String @col(name: "tax_id")
+  email: String
+  branchName: String @col(name: "branch_name")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type SupplierImportRun @table(name: "supplier_import_runs") {
+  id: UUID! @default(expr: "uuidV4()")
+  sourceFileName: String! @col(name: "source_file_name")
+  sourceFileHash: String! @col(name: "source_file_hash") @unique
+  totalRows: Int! @col(name: "total_rows")
+  createdCount: Int! @col(name: "created_count")
+  updatedCount: Int! @col(name: "updated_count")
+  reactivatedCount: Int! @col(name: "reactivated_count")
+  deactivatedCount: Int! @col(name: "deactivated_count")
+  importedByUid: String! @col(name: "imported_by_uid")
+  importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
+}
+
+type Customer @table(name: "customers", key: "customerCode") {
+  customerCode: String! @col(name: "customer_code")
+  customerName: String! @col(name: "customer_name") @searchable
+  customerType: String @col(name: "customer_type")
+  salespersonCode: String @col(name: "salesperson_code")
+  salesTerritory: String @col(name: "sales_territory")
+  priceType: String @col(name: "price_type")
+  addressText: String @col(name: "address_text")
+  postalCode: String @col(name: "postal_code")
+  contactName: String @col(name: "contact_name")
+  expressAccountCode: String @col(name: "express_account_code")
+  shippingMethod: String @col(name: "shipping_method")
+  creditDays: Int @col(name: "credit_days")
+  creditLimit: Float @col(name: "credit_limit", dataType: "numeric(18,2)")
+  phoneText: String @col(name: "phone_text")
+  paymentTerms: String @col(name: "payment_terms")
+  taxId: String @col(name: "tax_id")
+  branchName: String @col(name: "branch_name")
+  email: String
+  noteText: String @col(name: "note_text")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type CustomerImportRun @table(name: "customer_import_runs") {
+  id: UUID! @default(expr: "uuidV4()")
+  sourceFileName: String! @col(name: "source_file_name")
+  sourceFileHash: String! @col(name: "source_file_hash") @unique
+  totalRows: Int! @col(name: "total_rows")
+  createdCount: Int! @col(name: "created_count")
+  updatedCount: Int! @col(name: "updated_count")
+  reactivatedCount: Int! @col(name: "reactivated_count")
+  deactivatedCount: Int! @col(name: "deactivated_count")
+  importedByUid: String! @col(name: "imported_by_uid")
+  importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
+}
+
+type ProductCategory @table(name: "product_categories", key: "categoryCode") {
+  categoryCode: String! @col(name: "category_code")
+  categoryName: String! @col(name: "category_name") @searchable
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type Product @table(name: "products", key: "productCode") {
+  productCode: String! @col(name: "product_code")
+  productName: String! @col(name: "product_name") @searchable
+  largeDescription: String @col(name: "large_description")
+  categoryCode: String! @col(name: "category_code")
+  category: ProductCategory! @ref(fields: "categoryCode")
+  supplierCode: String @col(name: "supplier_code")
+  supplier: Supplier @ref(fields: "supplierCode")
+  smallUnit: String @col(name: "small_unit")
+  largeUnit: String @col(name: "large_unit")
+  purchaseUnit: String @col(name: "purchase_unit")
+  purchaseFactor: Float @col(name: "purchase_factor", dataType: "numeric(18,4)")
+  salesUnit: String @col(name: "sales_unit")
+  salesFactor: Float @col(name: "sales_factor", dataType: "numeric(18,4)")
+  accountCode: String @col(name: "account_code")
+  standardPrice: Float @col(name: "standard_price", dataType: "numeric(18,4)")
+  replacementText: String @col(name: "replacement_text")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type ProductImportRun @table(name: "product_import_runs") {
+  id: UUID! @default(expr: "uuidV4()")
+  sourceFileName: String! @col(name: "source_file_name")
+  sourceFileHash: String! @col(name: "source_file_hash") @unique
+  totalRows: Int! @col(name: "total_rows")
+  categoryRows: Int! @col(name: "category_rows")
+  createdCount: Int! @col(name: "created_count")
+  updatedCount: Int! @col(name: "updated_count")
+  reactivatedCount: Int! @col(name: "reactivated_count")
+  deactivatedCount: Int! @col(name: "deactivated_count")
+  importedByUid: String! @col(name: "imported_by_uid")
+  importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
+}
+
+type SalesHistoryLine @table(name: "sales_history_lines", key: "sourceKey") {
+  sourceKey: String! @col(name: "source_key")
+  sourceOccurrence: Int! @col(name: "source_occurrence")
+  transactionDate: Date! @col(name: "transaction_date")
+  documentNumber: String! @col(name: "document_number")
+  productCode: String! @col(name: "product_code")
+  product: Product! @ref(fields: "productCode")
+  customerCode: String! @col(name: "customer_code")
+  customer: Customer! @ref(fields: "customerCode")
+  sourceQuantity: Float! @col(name: "source_quantity", dataType: "numeric(18,4)")
+  sourceUnitText: String @col(name: "source_unit_text")
+  isReturn: Boolean! @col(name: "is_return")
+  unitPrice: Float @col(name: "unit_price", dataType: "numeric(18,4)")
+  sourceVatCode: String @col(name: "source_vat_code")
+  lineDiscountText: String @col(name: "line_discount_text")
+  grossAmount: Float @col(name: "gross_amount", dataType: "numeric(18,4)")
+  overallDiscountText: String @col(name: "overall_discount_text")
+  netAmount: Float @col(name: "net_amount", dataType: "numeric(18,4)")
+  referenceText: String @col(name: "reference_text")
+  noteText: String @col(name: "note_text")
+  salesFactor: Float! @col(name: "sales_factor", dataType: "numeric(18,4)")
+  analysisQuantity: Float! @col(name: "analysis_quantity", dataType: "numeric(18,4)")
+  analysisNetAmount: Float @col(name: "analysis_net_amount", dataType: "numeric(18,4)")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type SalesHistoryImportRun @table(name: "sales_history_import_runs") {
+  id: UUID! @default(expr: "uuidV4()")
+  sourceFileName: String! @col(name: "source_file_name")
+  sourceFileHash: String! @col(name: "source_file_hash") @unique
+  periodStart: Date! @col(name: "period_start")
+  periodEnd: Date! @col(name: "period_end")
+  totalRows: Int! @col(name: "total_rows")
+  createdCount: Int! @col(name: "created_count")
+  updatedCount: Int! @col(name: "updated_count")
+  unchangedCount: Int! @col(name: "unchanged_count")
+  deactivatedCount: Int! @col(name: "deactivated_count")
+  importedByUid: String! @col(name: "imported_by_uid")
+  importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
+}
+
+type PurchaseHistoryLine @table(name: "purchase_history_lines", key: "sourceKey") {
+  sourceKey: String! @col(name: "source_key")
+  sourceOccurrence: Int! @col(name: "source_occurrence")
+  transactionDate: Date! @col(name: "transaction_date")
+  documentNumber: String! @col(name: "document_number")
+  productCode: String! @col(name: "product_code")
+  product: Product! @ref(fields: "productCode")
+  supplierCode: String! @col(name: "supplier_code")
+  supplier: Supplier! @ref(fields: "supplierCode")
+  sourceQuantity: Float! @col(name: "source_quantity", dataType: "numeric(18,4)")
+  sourceUnitText: String @col(name: "source_unit_text")
+  isReturn: Boolean! @col(name: "is_return")
+  unitPrice: Float @col(name: "unit_price", dataType: "numeric(18,4)")
+  sourceVatCode: String @col(name: "source_vat_code")
+  lineDiscountText: String @col(name: "line_discount_text")
+  grossAmount: Float @col(name: "gross_amount", dataType: "numeric(18,4)")
+  overallDiscountText: String @col(name: "overall_discount_text")
+  netAmount: Float @col(name: "net_amount", dataType: "numeric(18,4)")
+  referenceText: String @col(name: "reference_text")
+  purchaseFactor: Float! @col(name: "purchase_factor", dataType: "numeric(18,4)")
+  analysisQuantity: Float! @col(name: "analysis_quantity", dataType: "numeric(18,4)")
+  analysisNetAmount: Float @col(name: "analysis_net_amount", dataType: "numeric(18,4)")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type PurchaseHistoryImportRun @table(name: "purchase_history_import_runs") {
+  id: UUID! @default(expr: "uuidV4()")
+  sourceFileName: String! @col(name: "source_file_name")
+  sourceFileHash: String! @col(name: "source_file_hash") @unique
+  periodStart: Date! @col(name: "period_start")
+  periodEnd: Date! @col(name: "period_end")
+  totalRows: Int! @col(name: "total_rows")
+  createdCount: Int! @col(name: "created_count")
+  updatedCount: Int! @col(name: "updated_count")
+  unchangedCount: Int! @col(name: "unchanged_count")
+  deactivatedCount: Int! @col(name: "deactivated_count")
+  importedByUid: String! @col(name: "imported_by_uid")
+  importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
+}
+
+type StockSnapshot @table(name: "stock_snapshots", key: "sourceKey") {
+  sourceKey: String! @col(name: "source_key")
+  snapshotDate: Date! @col(name: "snapshot_date")
+  warehouseFrom: String! @col(name: "warehouse_from")
+  warehouseTo: String! @col(name: "warehouse_to")
+  productCode: String! @col(name: "product_code")
+  product: Product! @ref(fields: "productCode")
+  sourceProductName: String! @col(name: "source_product_name")
+  quantity: Float! @col(name: "quantity", dataType: "numeric(18,4)")
+  sourceUnitText: String @col(name: "source_unit_text")
+  unitCost: Float @col(name: "unit_cost", dataType: "numeric(18,4)")
+  inventoryValue: Float! @col(name: "inventory_value", dataType: "numeric(18,4)")
+  lotMismatch: Boolean! @col(name: "lot_mismatch") @default(value: false)
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type StockSnapshotLot @table(name: "stock_snapshot_lots", key: "sourceKey") {
+  sourceKey: String! @col(name: "source_key")
+  snapshotKey: String! @col(name: "snapshot_key")
+  snapshot: StockSnapshot! @ref(fields: "snapshotKey")
+  snapshotDate: Date! @col(name: "snapshot_date")
+  warehouseFrom: String! @col(name: "warehouse_from")
+  warehouseTo: String! @col(name: "warehouse_to")
+  productCode: String! @col(name: "product_code")
+  sourceOccurrence: Int! @col(name: "source_occurrence")
+  receivedDate: Date! @col(name: "received_date")
+  lotReference: String! @col(name: "lot_reference")
+  quantity: Float! @col(name: "quantity", dataType: "numeric(18,4)")
+  unitCost: Float @col(name: "unit_cost", dataType: "numeric(18,4)")
+  inventoryValue: Float @col(name: "inventory_value", dataType: "numeric(18,4)")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  lastImportId: UUID @col(name: "last_import_id")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type StockImportRun @table(name: "stock_import_runs") {
+  id: UUID! @default(expr: "uuidV4()")
+  sourceFileName: String! @col(name: "source_file_name")
+  sourceFileHash: String! @col(name: "source_file_hash") @unique
+  snapshotDate: Date! @col(name: "snapshot_date")
+  warehouseFrom: String! @col(name: "warehouse_from")
+  warehouseTo: String! @col(name: "warehouse_to")
+  totalRows: Int! @col(name: "total_rows")
+  lotRows: Int! @col(name: "lot_rows")
+  lotMismatchCount: Int! @col(name: "lot_mismatch_count")
+  createdCount: Int! @col(name: "created_count")
+  updatedCount: Int! @col(name: "updated_count")
+  unchangedCount: Int! @col(name: "unchanged_count")
+  deactivatedCount: Int! @col(name: "deactivated_count")
+  importedByUid: String! @col(name: "imported_by_uid")
+  importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
+}
+
+type ProductGroup @table(name: "product_groups") {
+  id: UUID! @default(expr: "uuidV4()")
+  groupName: String! @col(name: "group_name") @unique
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type ProductGroupItem @table(name: "product_group_items", key: ["groupId", "productCode"]) {
+  groupId: UUID! @col(name: "group_id")
+  group: ProductGroup! @ref(fields: "groupId")
+  productCode: String! @col(name: "product_code")
+  product: Product! @ref(fields: "productCode")
+  addedByUid: String! @col(name: "added_by_uid")
+  addedAt: Timestamp! @col(name: "added_at") @default(expr: "request.time")
+}

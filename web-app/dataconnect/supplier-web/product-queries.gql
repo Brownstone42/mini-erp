@@ -1,0 +1,39 @@
+query ListProducts($limit: Int = 2000, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Product master data is readable by authenticated ERP users.") {
+  products(limit: $limit, offset: $offset, orderBy: { productCode: ASC }) {
+    productCode
+    productName
+    category { categoryCode categoryName }
+    supplier { supplierCode supplierName }
+    smallUnit
+    salesUnit
+    standardPrice
+    isActive
+    updatedAt
+  }
+}
+
+query GetProduct($productCode: String!)
+  @auth(level: USER, insecureReason: "Product master data is readable by authenticated ERP users.") {
+  product(key: { productCode: $productCode }) {
+    productCode productName largeDescription
+    category { categoryCode categoryName }
+    supplier { supplierCode supplierName }
+    smallUnit largeUnit purchaseUnit purchaseFactor salesUnit salesFactor
+    accountCode standardPrice replacementText isActive createdAt updatedAt
+  }
+}
+
+query ListProductCategories($limit: Int = 100, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Product category master data is readable by authenticated ERP users.") {
+  productCategories(limit: $limit, offset: $offset, orderBy: { categoryCode: ASC }) {
+    categoryCode categoryName isActive updatedAt
+  }
+}
+
+query GetProductCategory($categoryCode: String!)
+  @auth(level: USER, insecureReason: "Product category master data is readable by authenticated ERP users.") {
+  productCategory(key: { categoryCode: $categoryCode }) {
+    categoryCode categoryName isActive createdAt updatedAt
+  }
+}

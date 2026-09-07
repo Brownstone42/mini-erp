@@ -1,0 +1,19 @@
+mutation AdminImportSuppliers(
+  $suppliers: [Supplier_Data!]! @allow(
+    fields: "supplierCode supplierName supplierType creditDays creditLimit expressAccountCode addressText phoneText contactName taxId email branchName isActive lastImportId updatedAt"
+    maxCount: 2000
+  )
+  $supplierCodes: [String!]!
+  $importId: UUID!
+  $now: Timestamp!
+  $importRun: SupplierImportRun_Data! @allow(
+    fields: "id sourceFileName sourceFileHash totalRows createdCount updatedCount reactivatedCount deactivatedCount importedByUid importedAt"
+  )
+) @auth(level: NO_ACCESS) @transaction {
+  deactivated: supplier_updateMany(
+    where: { supplierCode: { nin: $supplierCodes }, isActive: { eq: true } }
+    data: { isActive: false, lastImportId: $importId, updatedAt: $now }
+  )
+  imported: supplier_upsertMany(data: $suppliers)
+  audit: supplierImportRun_insert(data: $importRun)
+}

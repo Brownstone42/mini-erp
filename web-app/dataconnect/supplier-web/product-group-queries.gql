@@ -1,0 +1,18 @@
+query ListProductGroups($limit: Int = 500, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Product Groups are shared settings for authenticated ERP users.") {
+  productGroups(limit: $limit, offset: $offset, orderBy: { groupName: ASC }) {
+    id groupName createdAt updatedAt
+  }
+  productGroupItems(limit: 10000, orderBy: { addedAt: DESC }) {
+    groupId productCode
+  }
+}
+
+query GetProductGroup($id: UUID!, $limit: Int = 5000)
+  @auth(level: USER, insecureReason: "Product Groups are shared settings for authenticated ERP users.") {
+  productGroup(id: $id) { id groupName createdAt updatedAt }
+  productGroupItems(where: { groupId: { eq: $id } }, limit: $limit, orderBy: { addedAt: DESC }) {
+    groupId productCode addedAt
+    product { productCode productName isActive }
+  }
+}

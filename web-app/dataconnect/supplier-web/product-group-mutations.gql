@@ -1,0 +1,19 @@
+mutation CreateProductGroup($groupName: String!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users can create shared Product Groups.") {
+  productGroup_insert(data: { groupName: $groupName, createdByUid_expr: "auth.uid", updatedAt_expr: "request.time" })
+}
+
+mutation RenameProductGroup($id: UUID!, $groupName: String!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users can rename shared Product Groups.") {
+  productGroup_update(id: $id, data: { groupName: $groupName, updatedAt_expr: "request.time" })
+}
+
+mutation RemoveProductFromGroup($groupId: UUID!, $productCode: String!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users can remove Products from shared Product Groups.") {
+  productGroupItem_delete(key: { groupId: $groupId, productCode: $productCode })
+}
+
+mutation AddProductToGroup($groupId: UUID!, $productCode: String!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users can add Products to shared Product Groups.") {
+  productGroupItem_upsert(data: { groupId: $groupId, productCode: $productCode, addedByUid_expr: "auth.uid", addedAt_expr: "request.time" })
+}

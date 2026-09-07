@@ -1,0 +1,26 @@
+# Real or sensitive data exports
+private-data/
+imports/
+exports/
+*.dbf
+*.bak
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Generated dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Hosting provider local state
+.netlify/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+firebase-debug.log*

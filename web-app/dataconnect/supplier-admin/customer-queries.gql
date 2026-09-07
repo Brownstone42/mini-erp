@@ -1,0 +1,33 @@
+query AdminListCustomers($limit: Int = 1100, $offset: Int = 0) @auth(level: NO_ACCESS) {
+  customers(limit: $limit, offset: $offset, orderBy: { customerCode: ASC }) {
+    customerCode
+    customerName
+    customerType
+    salespersonCode
+    salesTerritory
+    priceType
+    addressText
+    postalCode
+    contactName
+    expressAccountCode
+    shippingMethod
+    creditDays
+    creditLimit
+    phoneText
+    paymentTerms
+    taxId
+    branchName
+    email
+    noteText
+    isActive
+    lastImportId
+  }
+}
+
+query AdminGetCustomerImportRunByHash($sourceFileHash: String!) @auth(level: NO_ACCESS) {
+  customerImportRuns(where: { sourceFileHash: { eq: $sourceFileHash } }, limit: 1) {
+    id
+    sourceFileName
+    importedAt
+  }
+}
