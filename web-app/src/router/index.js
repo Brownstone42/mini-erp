@@ -20,6 +20,7 @@ const SalesHistoryListView = () => import('../views/sales/SalesHistoryListView.v
 const PurchaseHistoryListView = () => import('../views/purchases/PurchaseHistoryListView.vue')
 const StockListView = () => import('../views/stock/StockListView.vue')
 const SalesReportView = () => import('../views/reports/SalesReportView.vue')
+const CustomerSalesReportView = () => import('../views/reports/CustomerSalesReportView.vue')
 const ProductGroupListView = () => import('../views/settings/ProductGroupListView.vue')
 const ProductGroupDetailView = () => import('../views/settings/ProductGroupDetailView.vue')
 
@@ -125,6 +126,11 @@ const routes = [
         path: 'reports/sales',
         name: 'sales-report',
         component: SalesReportView
+      },
+      {
+        path: 'reports/customer-sales',
+        name: 'customer-sales-report',
+        component: CustomerSalesReportView
       },
       {
         path: 'settings/product-groups',
