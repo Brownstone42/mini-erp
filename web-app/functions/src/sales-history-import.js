@@ -3,6 +3,7 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import { buildSalesHistoryPreview } from './sales-history-preview.js'
 
 const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com'])
+const IMPORT_BATCH_SIZE = 5000
 
 export function assertSalesHistoryImportAdmin(auth) {
   const email = auth?.token?.email?.toLowerCase()
@@ -31,8 +32,14 @@ export async function importSalesHistorySnapshot(options) {
     analysisQuantity: row.analysisQuantity, analysisNetAmount: row.analysisNetAmount,
     isActive: true, lastImportId: importId, updatedAt: now
   }))
-  await options.dataConnect.executeMutation('AdminImportSalesHistory', {
-    rows, sourceKeys: rows.map((row) => row.sourceKey), periodStart: preview.periodStart, periodEnd: preview.periodEnd,
+  for (let offset = 0; offset < rows.length; offset += IMPORT_BATCH_SIZE) {
+    await options.dataConnect.executeMutation('AdminUpsertSalesHistoryBatch', {
+      rows: rows.slice(offset, offset + IMPORT_BATCH_SIZE)
+    })
+  }
+
+  await options.dataConnect.executeMutation('AdminFinalizeSalesHistoryImport', {
+    sourceKeys: rows.map((row) => row.sourceKey), periodStart: preview.periodStart, periodEnd: preview.periodEnd,
     importId, now,
     importRun: { id: importId, sourceFileName: options.fileName, sourceFileHash: preview.previewId,
       periodStart: preview.periodStart, periodEnd: preview.periodEnd, totalRows: preview.summary.totalRows,

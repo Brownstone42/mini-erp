@@ -32,6 +32,23 @@ setGlobalOptions({
   maxInstances: 10
 })
 
+const SALES_HISTORY_QUERY_PAGE_SIZE = 6000
+
+async function listAllSalesHistoryForPeriod(periodStart, periodEnd) {
+  const rows = []
+  for (let offset = 0; ; offset += SALES_HISTORY_QUERY_PAGE_SIZE) {
+    const result = await dataConnect.executeQuery('AdminListSalesHistoryForPeriod', {
+      periodStart,
+      periodEnd,
+      limit: SALES_HISTORY_QUERY_PAGE_SIZE,
+      offset
+    })
+    const page = result.data?.salesHistoryLines || []
+    rows.push(...page)
+    if (page.length < SALES_HISTORY_QUERY_PAGE_SIZE) return rows
+  }
+}
+
 export const health = onRequest({ cors: false }, (request, response) => {
   response.json({
     service: 'mini-erp-functions',
@@ -144,16 +161,14 @@ export const previewSalesHistoryImport = onCall({ cors: true, timeoutSeconds: 12
     if (!parsed.periodStart || !parsed.periodEnd) {
       return buildSalesHistoryPreview({ fileName: fileName.trim(), fileBuffer })
     }
-    const [existingResult, productResult, customerResult] = await Promise.all([
-      dataConnect.executeQuery('AdminListSalesHistoryForPeriod', {
-        periodStart: parsed.periodStart, periodEnd: parsed.periodEnd, limit: 6000, offset: 0
-      }),
+    const [existingRows, productResult, customerResult] = await Promise.all([
+      listAllSalesHistoryForPeriod(parsed.periodStart, parsed.periodEnd),
       dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 }),
       dataConnect.executeQuery('AdminListCustomers', { limit: 1100, offset: 0 })
     ])
     return buildSalesHistoryPreview({
       fileName: fileName.trim(), fileBuffer,
-      existingRows: existingResult.data?.salesHistoryLines || [],
+      existingRows,
       products: productResult.data?.products || [],
       customerCodes: (customerResult.data?.customers || []).map((customer) => customer.customerCode)
     })
@@ -173,19 +188,19 @@ export const confirmSalesHistoryImport = onCall({ cors: true, timeoutSeconds: 30
   try {
     const fileBuffer = Buffer.from(fileBase64, 'base64')
     const parsed = parseExpressSalesHistory(fileBuffer)
-    const [existingResult, productResult, customerResult] = await Promise.all([
-      dataConnect.executeQuery('AdminListSalesHistoryForPeriod', { periodStart: parsed.periodStart, periodEnd: parsed.periodEnd, limit: 6000, offset: 0 }),
+    const [existingRows, productResult, customerResult] = await Promise.all([
+      listAllSalesHistoryForPeriod(parsed.periodStart, parsed.periodEnd),
       dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 }),
       dataConnect.executeQuery('AdminListCustomers', { limit: 1100, offset: 0 })
     ])
     return await importSalesHistorySnapshot({ dataConnect, fileName: fileName.trim(), fileBuffer, previewId,
-      importedByUid: request.auth.uid, existingRows: existingResult.data?.salesHistoryLines || [],
+      importedByUid: request.auth.uid, existingRows,
       products: productResult.data?.products || [], customerCodes: (customerResult.data?.customers || []).map((item) => item.customerCode),
       findImportByHash: (sourceFileHash) => dataConnect.executeQuery('AdminGetSalesHistoryImportRunByHash', { sourceFileHash }) })
   } catch (error) {
     if (error instanceof HttpsError) throw error
     console.error('Sales History import failed', error)
-    throw new HttpsError('internal', 'ไม่สามารถ Import Sales History ได้ ระบบไม่ได้เปลี่ยนแปลงข้อมูล')
+    throw new HttpsError('internal', 'ไม่สามารถ Import Sales History ได้ กรุณาลอง Import ไฟล์เดิมอีกครั้ง')
   }
 })
 

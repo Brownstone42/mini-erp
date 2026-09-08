@@ -21,6 +21,8 @@ const PurchaseHistoryListView = () => import('../views/purchases/PurchaseHistory
 const StockListView = () => import('../views/stock/StockListView.vue')
 const SalesReportView = () => import('../views/reports/SalesReportView.vue')
 const CustomerSalesReportView = () => import('../views/reports/CustomerSalesReportView.vue')
+const ProductPurchaseCostReportView = () => import('../views/reports/ProductPurchaseCostReportView.vue')
+const ProductSalesPriceReportView = () => import('../views/reports/ProductSalesPriceReportView.vue')
 const ProductGroupListView = () => import('../views/settings/ProductGroupListView.vue')
 const ProductGroupDetailView = () => import('../views/settings/ProductGroupDetailView.vue')
 
@@ -142,6 +144,16 @@ const routes = [
         path: 'reports/customer-sales',
         name: 'customer-sales-report',
         component: CustomerSalesReportView
+      },
+      {
+        path: 'reports/product-purchase-cost',
+        name: 'product-purchase-cost-report',
+        component: ProductPurchaseCostReportView
+      },
+      {
+        path: 'reports/product-sales-price',
+        name: 'product-sales-price-report',
+        component: ProductSalesPriceReportView
       },
       {
         path: 'settings/product-groups',
