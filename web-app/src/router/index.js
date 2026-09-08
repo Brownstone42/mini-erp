@@ -43,61 +43,72 @@ const routes = [
       {
         path: 'master-data/suppliers',
         name: 'supplier-list',
-        component: SupplierListView
+        component: SupplierListView,
+        meta: { keepAlive: true, scrollKey: 'supplier-list' }
       },
       {
         path: 'master-data/suppliers/import',
         name: 'supplier-import',
-        component: SupplierImportView
+        component: SupplierImportView,
+        meta: { returnScrollKey: 'supplier-list' }
       },
       {
         path: 'master-data/suppliers/:supplierCode',
         name: 'supplier-detail',
         component: SupplierDetailView,
-        props: true
+        props: true,
+        meta: { returnScrollKey: 'supplier-list' }
       },
       {
         path: 'master-data/customers',
         name: 'customer-list',
-        component: CustomerListView
+        component: CustomerListView,
+        meta: { keepAlive: true, scrollKey: 'customer-list' }
       },
       {
         path: 'master-data/customers/import',
         name: 'customer-import',
-        component: CustomerImportView
+        component: CustomerImportView,
+        meta: { returnScrollKey: 'customer-list' }
       },
       {
         path: 'master-data/customers/:customerCode',
         name: 'customer-detail',
         component: CustomerDetailView,
-        props: true
+        props: true,
+        meta: { returnScrollKey: 'customer-list' }
       },
       {
         path: 'master-data/products',
         name: 'product-list',
-        component: ProductListView
+        component: ProductListView,
+        meta: { keepAlive: true, scrollKey: 'product-list' }
       },
       {
         path: 'master-data/products/import',
         name: 'product-import',
-        component: ProductImportView
+        component: ProductImportView,
+        meta: { returnScrollKey: 'product-list' }
       },
       {
         path: 'master-data/products/:productCode',
         name: 'product-detail',
         component: ProductDetailView,
-        props: true
+        props: true,
+        meta: { returnScrollKey: 'product-list' }
       },
       {
         path: 'master-data/product-categories',
         name: 'product-category-list',
-        component: ProductCategoryListView
+        component: ProductCategoryListView,
+        meta: { keepAlive: true, scrollKey: 'product-category-list' }
       },
       {
         path: 'master-data/product-categories/:categoryCode',
         name: 'product-category-detail',
         component: ProductCategoryDetailView,
-        props: true
+        props: true,
+        meta: { returnScrollKey: 'product-category-list' }
       },
       {
         path: 'sales/history',
@@ -151,10 +162,22 @@ const routes = [
   }
 ]
 
+const masterDataScrollPositions = new Map()
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior() {
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+
+    const scrollKey = to.meta.scrollKey
+    if (scrollKey && from.meta.returnScrollKey === scrollKey && masterDataScrollPositions.has(scrollKey)) {
+      const top = masterDataScrollPositions.get(scrollKey)
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => resolve({ top }))
+      })
+    }
+
     return { top: 0 }
   }
 })
@@ -168,7 +191,12 @@ function getCurrentUser() {
   })
 }
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
+  const scrollKey = from.meta.scrollKey
+  if (scrollKey && to.meta.returnScrollKey === scrollKey) {
+    masterDataScrollPositions.set(scrollKey, window.scrollY)
+  }
+
   const user = firebaseAuth.currentUser || await getCurrentUser()
   if (!to.meta.public && !user) return { name: 'login', query: { redirect: to.fullPath } }
   if (to.name === 'login' && user) return { name: 'dashboard' }

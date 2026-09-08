@@ -1,7 +1,7 @@
 <template>
   <section>
     <ConfirmDialog />
-    <Dialog v-model:visible="documentDialogVisible" modal :header="`เอกสาร ${selectedDocumentNumber}`" class="w-full max-w-6xl">
+    <Dialog v-model:visible="documentDialogVisible" modal dismissable-mask :header="`เอกสาร ${selectedDocumentNumber}`" class="w-full max-w-6xl">
       <DataTable :value="selectedDocumentRows" striped-rows>
         <Column field="productCode" header="รหัสสินค้า" style="width: 15rem" />
         <Column field="productName" header="ชื่อสินค้า" />

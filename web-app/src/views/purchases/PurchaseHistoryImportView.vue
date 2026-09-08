@@ -1,7 +1,7 @@
 <template>
   <section>
     <ConfirmDialog />
-    <Dialog v-model:visible="dialog" modal :header="`เอกสาร ${selectedDocument}`" class="w-full max-w-6xl">
+    <Dialog v-model:visible="dialog" modal dismissable-mask :header="`เอกสาร ${selectedDocument}`" class="w-full max-w-6xl">
       <DataTable :value="documentRows" striped-rows><Column field="productCode" header="รหัสสินค้า" style="width:14rem" /><Column field="productName" header="ชื่อสินค้า" /><Column field="sourceQuantity" header="จำนวน" /><Column field="sourceUnitText" header="หน่วย" /><Column header="ยอดสุทธิ"><template #body="p">{{ money(p.data.signedNetAmount) }}</template></Column></DataTable>
     </Dialog>
     <div v-if="!embedded"><p class="text-sm font-medium text-primary-600">Purchases · Purchase History</p><h2 class="mt-1 text-3xl font-semibold">Import from Express</h2><p class="mt-2 text-sm text-surface-500">รองรับการอัปเดตช่วงวันที่ซ้อนทับ และตรวจสอบก่อนบันทึก</p></div>

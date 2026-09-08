@@ -80,7 +80,12 @@
       </header>
 
       <main class="p-8">
-        <RouterView />
+        <RouterView v-slot="{ Component, route }">
+          <KeepAlive>
+            <component :is="Component" v-if="route.meta.keepAlive" :key="route.name" />
+          </KeepAlive>
+          <component :is="Component" v-if="!route.meta.keepAlive" :key="route.fullPath" />
+        </RouterView>
       </main>
     </div>
   </div>
