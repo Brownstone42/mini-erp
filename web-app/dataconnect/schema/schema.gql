@@ -275,3 +275,33 @@ type ProductGroupItem @table(name: "product_group_items", key: ["groupId", "prod
   addedByUid: String! @col(name: "added_by_uid")
   addedAt: Timestamp! @col(name: "added_at") @default(expr: "request.time")
 }
+
+type Quotation @table(name: "quotations", key: "quotationNumber") {
+  quotationNumber: String! @col(name: "quotation_number")
+  requestId: UUID! @col(name: "request_id") @unique
+  quotationDate: Date! @col(name: "quotation_date")
+  customerCode: String @col(name: "customer_code")
+  customer: Customer @ref(fields: "customerCode")
+  customerName: String! @col(name: "customer_name")
+  addressText: String @col(name: "address_text")
+  email: String
+  phoneText: String @col(name: "phone_text")
+  remarkText: String! @col(name: "remark_text")
+  totalAmount: Float! @col(name: "total_amount", dataType: "numeric(18,2)")
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type QuotationLine @table(name: "quotation_lines", key: ["quotationNumber", "lineNumber"]) {
+  quotationNumber: String! @col(name: "quotation_number")
+  quotation: Quotation! @ref(fields: "quotationNumber")
+  lineNumber: Int! @col(name: "line_number")
+  productCode: String @col(name: "product_code")
+  product: Product @ref(fields: "productCode")
+  description: String!
+  unitText: String @col(name: "unit_text")
+  quantity: Float! @col(dataType: "numeric(18,4)")
+  unitPrice: Float! @col(name: "unit_price", dataType: "numeric(18,4)")
+  lineTotal: Float! @col(name: "line_total", dataType: "numeric(18,2)")
+}

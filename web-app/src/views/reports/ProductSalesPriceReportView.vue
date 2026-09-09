@@ -125,7 +125,7 @@ export default {
     },
     customerRelationCount() { return this.reportRows.reduce((total, row) => total + row.customerCount, 0) },
     latestDate() { return this.reportRows.reduce((date, row) => !date || row.latestSaleDate > date ? row.latestSaleDate : date, '') },
-    historyDialogTitle() { return this.selectedCustomerGroup ? `${this.selectedCustomerGroup.productCode} · ประวัติขาย ${this.selectedCustomerGroup.customerName}` : 'ประวัติขาย' }
+    historyDialogTitle() { return this.selectedCustomerGroup ? `${this.selectedCustomerGroup.productCode} - ${this.selectedCustomerGroup.productName}` : 'ประวัติขาย' }
   },
   watch: {
     searchTerm() { this.expandedRows = {} },

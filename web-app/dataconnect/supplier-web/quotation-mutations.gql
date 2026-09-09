@@ -1,0 +1,33 @@
+mutation CreateQuotation(
+  $quotationNumber: String!
+  $requestId: UUID!
+  $quotationDate: Date!
+  $customerCode: String
+  $customerName: String!
+  $addressText: String
+  $email: String
+  $phoneText: String
+  $remarkText: String!
+  $totalAmount: Float!
+  $lines: [QuotationLine_Data!]! @allow(
+    fields: "quotationNumber lineNumber productCode description unitText quantity unitPrice lineTotal"
+    maxCount: 100
+  )
+) @auth(level: USER, insecureReason: "Authenticated ERP users are allowed to issue shared company quotations.") @transaction {
+  quotation_insert(data: {
+    quotationNumber: $quotationNumber
+    requestId: $requestId
+    quotationDate: $quotationDate
+    customerCode: $customerCode
+    customerName: $customerName
+    addressText: $addressText
+    email: $email
+    phoneText: $phoneText
+    remarkText: $remarkText
+    totalAmount: $totalAmount
+    createdByUid_expr: "auth.uid"
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+  quotationLine_insertMany(data: $lines)
+}

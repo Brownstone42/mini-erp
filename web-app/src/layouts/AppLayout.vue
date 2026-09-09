@@ -1,14 +1,14 @@
 <template>
   <div class="min-h-screen bg-surface-50 text-surface-900">
-    <aside class="fixed inset-y-0 left-0 z-20 w-64 border-r border-surface-200 bg-white">
-      <div class="flex h-16 items-center border-b border-surface-200 px-6">
+    <aside class="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-surface-200 bg-white">
+      <div class="flex h-16 shrink-0 items-center border-b border-surface-200 px-6">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">Internal</p>
           <h1 class="text-lg font-semibold">Mini ERP</h1>
         </div>
       </div>
 
-      <nav class="space-y-3 p-4" aria-label="เมนูหลัก">
+      <nav class="sidebar-nav min-h-0 flex-1 space-y-3 overflow-y-auto p-4" aria-label="เมนูหลัก">
         <RouterLink
           to="/"
           class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100"
@@ -17,6 +17,16 @@
           <i class="pi pi-home" />
           ภาพรวม
         </RouterLink>
+
+        <section>
+          <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="salesOpen" @click="salesOpen = !salesOpen">
+            <span class="flex items-center gap-3"><i class="pi pi-file-edit" /> Sales</span>
+            <i class="pi text-xs" :class="salesOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
+          </button>
+          <div v-show="salesOpen" class="mt-1 border-l border-surface-200 pl-3">
+            <RouterLink to="/sales/quotations/new" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-file-pdf" /> Quotation</RouterLink>
+          </div>
+        </section>
 
         <section>
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="masterDataOpen" @click="masterDataOpen = !masterDataOpen">
@@ -110,6 +120,7 @@ export default {
     return {
       userEmail: email,
       userInitial: email.charAt(0).toUpperCase() || 'U',
+      salesOpen: false,
       masterDataOpen: false,
       transactionDataOpen: false,
       reportsOpen: false,
@@ -118,8 +129,9 @@ export default {
   },
   watch: {
     '$route.path'(path) {
+      if (path.startsWith('/sales/quotations')) this.salesOpen = true
       if (path.startsWith('/master-data/')) this.masterDataOpen = true
-      if (path.startsWith('/sales/') || path.startsWith('/purchases/') || path.startsWith('/stock')) this.transactionDataOpen = true
+      if ((path.startsWith('/sales/') && !path.startsWith('/sales/quotations')) || path.startsWith('/purchases/') || path.startsWith('/stock')) this.transactionDataOpen = true
       if (path.startsWith('/reports/')) this.reportsOpen = true
       if (path.startsWith('/settings/')) this.settingsOpen = true
     }
@@ -133,4 +145,14 @@ export default {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--p-surface-300) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar { width: 6px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--p-surface-300); border-radius: 999px; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: var(--p-surface-400); }
+</style>

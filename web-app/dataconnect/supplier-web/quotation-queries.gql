@@ -1,0 +1,24 @@
+query LatestQuotationForMonth($rangeStart: String!, $rangeEnd: String!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users need the latest monthly running number before issuing a quotation.") {
+  quotations(
+    where: { quotationNumber: { ge: $rangeStart, le: $rangeEnd } }
+    limit: 1
+    orderBy: { quotationNumber: DESC }
+  ) {
+    quotationNumber
+  }
+}
+
+query ListQuotations($limit: Int = 100, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Quotations are shared company documents readable by authenticated ERP users.") {
+  quotations(limit: $limit, offset: $offset, orderBy: { quotationNumber: DESC }) {
+    quotationNumber quotationDate customerCode customerName totalAmount createdAt
+  }
+}
+
+query GetQuotationByRequestId($requestId: UUID!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users use the client request ID to safely recover an issued quotation after an uncertain network response.") {
+  quotations(where: { requestId: { eq: $requestId } }, limit: 1) {
+    quotationNumber
+  }
+}

@@ -25,6 +25,7 @@ const ProductPurchaseCostReportView = () => import('../views/reports/ProductPurc
 const ProductSalesPriceReportView = () => import('../views/reports/ProductSalesPriceReportView.vue')
 const ProductGroupListView = () => import('../views/settings/ProductGroupListView.vue')
 const ProductGroupDetailView = () => import('../views/settings/ProductGroupDetailView.vue')
+const QuotationCreateView = () => import('../views/sales/QuotationCreateView.vue')
 
 const routes = [
   {
@@ -111,6 +112,11 @@ const routes = [
         component: ProductCategoryDetailView,
         props: true,
         meta: { returnScrollKey: 'product-category-list' }
+      },
+      {
+        path: 'sales/quotations/new',
+        name: 'quotation-create',
+        component: QuotationCreateView
       },
       {
         path: 'sales/history',

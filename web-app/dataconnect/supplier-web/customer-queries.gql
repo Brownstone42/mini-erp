@@ -10,6 +10,9 @@ query ListCustomers($limit: Int = 1100, $offset: Int = 0)
     salespersonCode
     salesTerritory
     taxId
+    addressText
+    postalCode
+    email
     phoneText
     creditDays
     isActive
