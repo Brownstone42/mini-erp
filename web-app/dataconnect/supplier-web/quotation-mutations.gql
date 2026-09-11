@@ -7,6 +7,7 @@ mutation CreateQuotation(
   $addressText: String
   $email: String
   $phoneText: String
+  $signatoryId: UUID
   $remarkText: String!
   $totalAmount: Float!
   $lines: [QuotationLine_Data!]! @allow(
@@ -23,6 +24,7 @@ mutation CreateQuotation(
     addressText: $addressText
     email: $email
     phoneText: $phoneText
+    signatoryId: $signatoryId
     remarkText: $remarkText
     totalAmount: $totalAmount
     createdByUid_expr: "auth.uid"

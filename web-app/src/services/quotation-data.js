@@ -47,6 +47,7 @@ export async function createQuotation(quotation) {
         addressText: quotation.addressText?.trim() || null,
         email: quotation.email?.trim() || null,
         phoneText: quotation.phoneText?.trim() || null,
+        signatoryId: quotation.signatoryId || null,
         remarkText: quotation.remarkText.trim(),
         totalAmount: Number(quotation.totalAmount.toFixed(2)),
         lines

@@ -1,0 +1,26 @@
+mutation CreateSignatory(
+  $id: UUID!
+  $fullName: String!
+  $phoneText: String
+  $email: String
+  $signaturePath: String
+  $stampPath: String
+) @auth(level: USER, insecureReason: "Authenticated ERP administrators may create signatory profiles for company documents.") {
+  signatory_insert(data: {
+    id: $id
+    fullName: $fullName
+    phoneText: $phoneText
+    email: $email
+    signaturePath: $signaturePath
+    stampPath: $stampPath
+    isActive: true
+    createdByUid_expr: "auth.uid"
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation SetSignatoryActive($id: UUID!, $isActive: Boolean!)
+  @auth(level: USER, insecureReason: "Authenticated ERP administrators may activate or deactivate signatory profiles.") {
+  signatory_update(id: $id, data: { isActive: $isActive, updatedAt_expr: "request.time" })
+}

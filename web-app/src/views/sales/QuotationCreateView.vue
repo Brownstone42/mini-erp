@@ -81,7 +81,7 @@
         <div class="overflow-x-auto">
           <table class="w-full min-w-[980px] table-fixed border-separate border-spacing-y-2 text-sm">
             <thead class="text-left text-surface-500">
-              <tr><th class="w-10">#</th><th class="w-64">สินค้า</th><th>รายละเอียด *</th><th class="w-20">หน่วย</th><th class="w-24 text-right">จำนวน *</th><th class="w-28 text-right">ราคา/หน่วย *</th><th class="w-28 text-right">รวม</th><th class="w-12" /></tr>
+              <tr><th class="w-10">#</th><th class="w-64">รหัสสินค้า</th><th>ชื่อสินค้า *</th><th class="w-20">หน่วย</th><th class="w-24 text-right">จำนวน *</th><th class="w-28 text-right">ราคา/หน่วย *</th><th class="w-28 text-right">รวม</th><th class="w-12" /></tr>
             </thead>
             <tbody>
               <tr v-for="(line, index) in lines" :key="line.id" class="align-top">
@@ -113,10 +113,30 @@
       </section>
 
       <section class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
-        <label class="block">
-          <span class="mb-2 block text-sm font-medium text-surface-600">หมายเหตุ</span>
-          <InputText v-model="remarkText" class="w-full" />
-        </label>
+        <div class="grid gap-5 lg:grid-cols-2">
+          <label class="block">
+            <span class="mb-2 block text-sm font-medium text-surface-600">หมายเหตุ</span>
+            <InputText v-model="remarkText" class="w-full" />
+          </label>
+          <div>
+            <div class="flex items-center gap-2">
+              <Checkbox v-model="useSignatory" input-id="use-signatory" binary />
+              <label for="use-signatory" class="cursor-pointer text-sm font-medium text-surface-600">ลงนามโดยกรรมการ</label>
+            </div>
+            <Select
+              v-if="useSignatory"
+              v-model="selectedSignatoryId"
+              :options="signatoryOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="เลือกกรรมการลงนาม"
+              class="mt-3 w-full"
+              :disabled="!signatoryOptions.length"
+            />
+            <p v-if="useSignatory && !signatoryOptions.length" class="mt-2 text-xs text-red-600">ยังไม่มีกรรมการที่เปิดใช้งานและมีรูปลายเซ็น</p>
+            <p v-else-if="useSignatory && selectedSignatory" class="mt-2 text-xs text-surface-500">{{ selectedSignatory.stampUrl ? 'มีลายเซ็นและตราประทับบริษัท' : 'มีลายเซ็น แต่ยังไม่มีตราประทับบริษัท' }}</p>
+          </div>
+        </div>
         <div class="mt-5 flex justify-end">
           <Button label="ออกใบเสนอราคาและดาวน์โหลด PDF" icon="pi pi-file-pdf" size="large" :loading="saving || creatingPdf" :disabled="!quotationNumber || saving || creatingPdf" @click="issueQuotation" />
         </div>
@@ -177,8 +197,17 @@
         </section>
 
         <section v-if="pageIndex === quotationPages.length - 1" class="quote-closing">
-          <p>We hope that our quotation meets your requirements.</p>
-          <div class="signature"><div class="signature-space" /><div class="signature-line" /><strong>Anawat B. Buppajarn</strong><small>(Sales Manager)</small><span>{{ displayNumericDate(quotationDate) }}</span></div>
+          <div class="closing-message">
+            <p>We hope that our quotation meets your requirements.</p>
+            <img v-if="pdfStampUrl" :src="pdfStampUrl" alt="Company stamp" class="company-stamp" />
+          </div>
+          <div class="signature">
+            <div class="signature-space"><img v-if="pdfSignatureUrl" :src="pdfSignatureUrl" alt="Authorized signature" /></div>
+            <div class="signature-line" />
+            <strong>{{ selectedSignatory?.fullName || 'Anawat B. Buppajarn' }}</strong>
+            <small>{{ selectedSignatory ? '(Authorized Director)' : '(Sales Manager)' }}</small>
+            <span>{{ displayNumericDate(quotationDate) }}</span>
+          </div>
         </section>
         <div class="quote-footer">IDEAL GLOBE CO.,LTD.</div>
       </article>
@@ -189,33 +218,53 @@
 <script>
 import AutoComplete from 'primevue/autocomplete'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import DatePicker from 'primevue/datepicker'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
+import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import logoUrl from '../../assets/logo.png'
 import { fetchCustomers } from '../../services/customer-data.js'
 import { fetchProducts } from '../../services/product-data.js'
 import { fetchProductGroup, fetchProductGroups } from '../../services/product-group-data.js'
 import { createQuotation, previewNextQuotationNumber } from '../../services/quotation-data.js'
+import { fetchSignatories } from '../../services/signatory-data.js'
 import { quotationTotal, thaiBahtText } from '../../utils/quotation.js'
+
+async function imageDataUrl(url) {
+  if (!url) return ''
+  const response = await fetch(url, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`Cannot load signatory image: ${response.status}`)
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error || new Error('Cannot convert signatory image'))
+    reader.readAsDataURL(blob)
+  })
+}
 
 export default {
   name: 'QuotationCreateView',
-  components: { AutoComplete, Button, DatePicker, InputNumber, InputText, Message, Textarea },
+  components: { AutoComplete, Button, Checkbox, DatePicker, InputNumber, InputText, Message, Select, Textarea },
   data() {
     return {
       logoUrl,
-      customers: [], products: [], productGroups: [], customerSuggestions: [], productSuggestions: [],
+      customers: [], products: [], productGroups: [], signatories: [], customerSuggestions: [], productSuggestions: [],
       selectedProductGroupId: 'ALL', selectedProductGroupCodes: new Set(), productSearchQuery: '', loadingProductGroup: false,
       quotationDate: new Date(), quotationNumber: '', customerSelection: '', customerCode: '', customerName: '',
       customerAddress: '', customerEmail: '', customerPhone: '', remarkText: 'ยังไม่รวมค่าจัดส่ง',
+      useSignatory: false, selectedSignatoryId: null,
+      pdfSignatureUrl: '', pdfStampUrl: '',
       lines: [], loading: true, saving: false, creatingPdf: false, issued: false, loadError: '', formError: ''
     }
   },
   computed: {
     totalAmount() { return quotationTotal(this.lines) },
+    signatoryOptions() { return this.signatories.filter((item) => item.isActive && item.signatureUrl).map((item) => ({ label: item.fullName, value: item.id })) },
+    selectedSignatory() { return this.useSignatory ? this.signatories.find((item) => item.id === this.selectedSignatoryId) || null : null },
     productGroupOptions() { return [{ label: 'สินค้าทั้งหมด', value: 'ALL' }, ...this.productGroups.map((group) => ({ label: `${group.groupName} (${group.productCount.toLocaleString('th-TH')})`, value: group.id }))] },
     quotationDateIso() {
       const year = this.quotationDate.getFullYear()
@@ -239,11 +288,14 @@ export default {
     },
     quotationDate() { if (!this.issued) void this.refreshQuotationNumber() },
     selectedProductGroupId() { void this.loadSelectedProductGroup() }
+    ,
+    selectedSignatoryId() { this.pdfSignatureUrl = ''; this.pdfStampUrl = '' },
+    useSignatory(value) { if (!value) { this.pdfSignatureUrl = ''; this.pdfStampUrl = '' } }
   },
   async mounted() {
     this.addLine()
     try {
-      ;[this.customers, this.products, this.productGroups] = await Promise.all([fetchCustomers(), fetchProducts(), fetchProductGroups()])
+      ;[this.customers, this.products, this.productGroups, this.signatories] = await Promise.all([fetchCustomers(), fetchProducts(), fetchProductGroups(), fetchSignatories()])
       await this.refreshQuotationNumber()
     } catch (error) {
       console.error(error)
@@ -251,6 +303,12 @@ export default {
     } finally {
       this.loading = false
     }
+  },
+  beforeUnmount() {
+    this.signatories.forEach((item) => {
+      if (item.signatureUrl) URL.revokeObjectURL(item.signatureUrl)
+      if (item.stampUrl) URL.revokeObjectURL(item.stampUrl)
+    })
   },
   methods: {
     newLine() { return { id: crypto.randomUUID(), productSelection: null, productCode: '', description: '', unitText: '', quantity: 1, unitPrice: 0 } },
@@ -307,10 +365,25 @@ export default {
     },
     validateForm() {
       if (!this.customerName.trim()) return 'กรุณาระบุบริษัทลูกค้า'
+      if (this.useSignatory && !this.selectedSignatory) return 'กรุณาเลือกกรรมการที่มีรูปลายเซ็น'
       if (!this.lines.length) return 'กรุณาเพิ่มรายการสินค้า'
       const invalidIndex = this.lines.findIndex((line) => !line.productCode || !line.description.trim() || Number(line.quantity) <= 0 || Number(line.unitPrice) < 0)
       if (invalidIndex >= 0) return `กรุณาตรวจสอบรายการที่ ${invalidIndex + 1}: ต้องเลือกสินค้า ระบุรายละเอียด จำนวนมากกว่า 0 และราคาที่ถูกต้อง`
       return ''
+    },
+    async prepareSignatoryImages() {
+      if (!this.selectedSignatory) { this.pdfSignatureUrl = ''; this.pdfStampUrl = ''; return }
+      try {
+        const [signatureUrl, stampUrl] = await Promise.all([
+          imageDataUrl(this.selectedSignatory.signatureUrl),
+          imageDataUrl(this.selectedSignatory.stampUrl)
+        ])
+        if (!signatureUrl) throw new Error('Selected signatory has no signature image')
+        this.pdfSignatureUrl = signatureUrl
+        this.pdfStampUrl = stampUrl
+      } catch (error) {
+        throw new Error('SIGNATORY_IMAGE_LOAD_FAILED', { cause: error })
+      }
     },
     async issueQuotation() {
       if (this.saving || this.creatingPdf) return
@@ -318,25 +391,31 @@ export default {
       if (this.formError) return
       this.saving = true
       try {
+        await this.prepareSignatoryImages()
         this.quotationNumber = await createQuotation({
           quotationDate: this.quotationDateIso, customerCode: this.customerCode, customerName: this.customerName,
           addressText: this.customerAddress, email: this.customerEmail, phoneText: this.customerPhone,
+          signatoryId: this.selectedSignatory?.id || null,
           remarkText: this.remarkText, totalAmount: this.totalAmount, lines: this.lines
         })
         this.issued = true
         await this.downloadPdf()
       } catch (error) {
         console.error(error)
-        this.formError = 'ไม่สามารถออกใบเสนอราคาได้ ระบบยังไม่ได้บันทึกเอกสาร หรือเลขที่เอกสารอาจถูกใช้งานพร้อมกัน กรุณาลองอีกครั้ง'
+        this.formError = error.message === 'SIGNATORY_IMAGE_LOAD_FAILED'
+          ? 'ไม่สามารถโหลดรูปลายเซ็นหรือตราประทับได้ ระบบยังไม่ได้บันทึกเอกสาร กรุณาลองใหม่อีกครั้ง'
+          : 'ไม่สามารถออกใบเสนอราคาได้ ระบบยังไม่ได้บันทึกเอกสาร หรือเลขที่เอกสารอาจถูกใช้งานพร้อมกัน กรุณาลองอีกครั้ง'
       } finally { this.saving = false }
     },
     async downloadPdf() {
       if (this.creatingPdf) return
       this.creatingPdf = true
       try {
+        if (this.selectedSignatory && !this.pdfSignatureUrl) await this.prepareSignatoryImages()
         await this.$nextTick()
         const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
         const pageElements = Array.isArray(this.$refs.quotationPage) ? this.$refs.quotationPage : [this.$refs.quotationPage]
+        await Promise.all(pageElements.flatMap((page) => Array.from(page.querySelectorAll('img'))).map((image) => typeof image.decode === 'function' ? image.decode().catch(() => undefined) : Promise.resolve()))
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
         for (let index = 0; index < pageElements.length; index += 1) {
           const canvas = await html2canvas(pageElements[index], { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
@@ -352,6 +431,8 @@ export default {
     resetForm() {
       this.issued = false; this.formError = ''; this.customerSelection = ''; this.customerCode = ''; this.customerName = ''
       this.customerAddress = ''; this.customerEmail = ''; this.customerPhone = ''; this.remarkText = 'ยังไม่รวมค่าจัดส่ง'
+      this.useSignatory = false; this.selectedSignatoryId = null
+      this.pdfSignatureUrl = ''; this.pdfStampUrl = ''
       this.quotationDate = new Date(); this.lines = [this.newLine()]; void this.refreshQuotationNumber()
     },
     money(value) { return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 }).format(Number(value) || 0) },
@@ -404,9 +485,12 @@ export default {
 .summary-total strong { font-size: 17px; }
 .baht-text { position: absolute; right: 16px; bottom: 15px; max-width: 300px; font-size: 10px; text-align: right; }
 .quote-closing { display: flex; justify-content: space-between; align-items: flex-start; padding: 26px 30px 0; font-size: 11px; }
-.quote-closing > p { margin-top: 10px; }
+.closing-message { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; }
+.closing-message p { margin-top: 10px; }
+.company-stamp { width: 110px; height: 72px; margin-top: 8px; object-fit: contain; }
 .signature { display: flex; width: 205px; flex-direction: column; align-items: center; }
-.signature-space { height: 40px; }
+.signature-space { display: grid; width: 180px; height: 40px; place-items: center; }
+.signature-space img { max-width: 155px; max-height: 44px; object-fit: contain; }
 .signature-line { width: 180px; border-top: 1px dotted #b89b62; }
 .signature small { margin-top: 2px; font-weight: 600; }
 .signature span { margin-top: 18px; border-bottom: 1px dotted #b89b62; padding: 0 30px 4px; }

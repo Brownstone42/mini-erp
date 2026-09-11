@@ -286,6 +286,8 @@ type Quotation @table(name: "quotations", key: "quotationNumber") {
   addressText: String @col(name: "address_text")
   email: String
   phoneText: String @col(name: "phone_text")
+  signatoryId: UUID @col(name: "signatory_id")
+  signatory: Signatory @ref(fields: "signatoryId")
   remarkText: String! @col(name: "remark_text")
   totalAmount: Float! @col(name: "total_amount", dataType: "numeric(18,2)")
   createdByUid: String! @col(name: "created_by_uid")
@@ -304,4 +306,17 @@ type QuotationLine @table(name: "quotation_lines", key: ["quotationNumber", "lin
   quantity: Float! @col(dataType: "numeric(18,4)")
   unitPrice: Float! @col(name: "unit_price", dataType: "numeric(18,4)")
   lineTotal: Float! @col(name: "line_total", dataType: "numeric(18,2)")
+}
+
+type Signatory @table(name: "signatories") {
+  id: UUID! @default(expr: "uuidV4()")
+  fullName: String! @col(name: "full_name") @searchable
+  phoneText: String @col(name: "phone_text")
+  email: String
+  signaturePath: String @col(name: "signature_path")
+  stampPath: String @col(name: "stamp_path")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
 }

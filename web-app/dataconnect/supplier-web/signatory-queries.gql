@@ -1,0 +1,6 @@
+query ListSignatories($limit: Int = 100, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Authenticated ERP users may read signatory profiles used on internal company documents.") {
+  signatories(limit: $limit, offset: $offset, orderBy: { fullName: ASC }) {
+    id fullName phoneText email signaturePath stampPath isActive createdAt updatedAt
+  }
+}

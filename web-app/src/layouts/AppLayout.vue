@@ -73,6 +73,7 @@
           </button>
           <div v-show="settingsOpen" class="mt-1 border-l border-surface-200 pl-3">
             <RouterLink to="/settings/product-groups" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-bookmark" /> Product Group</RouterLink>
+            <RouterLink to="/settings/signatories" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-id-card" /> กรรมการลงนาม</RouterLink>
           </div>
         </section>
       </nav>

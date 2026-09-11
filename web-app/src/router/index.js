@@ -25,6 +25,7 @@ const ProductPurchaseCostReportView = () => import('../views/reports/ProductPurc
 const ProductSalesPriceReportView = () => import('../views/reports/ProductSalesPriceReportView.vue')
 const ProductGroupListView = () => import('../views/settings/ProductGroupListView.vue')
 const ProductGroupDetailView = () => import('../views/settings/ProductGroupDetailView.vue')
+const SignatoryListView = () => import('../views/settings/SignatoryListView.vue')
 const QuotationCreateView = () => import('../views/sales/QuotationCreateView.vue')
 
 const routes = [
@@ -171,6 +172,11 @@ const routes = [
         name: 'product-group-detail',
         component: ProductGroupDetailView,
         props: true
+      },
+      {
+        path: 'settings/signatories',
+        name: 'signatory-list',
+        component: SignatoryListView
       }
     ]
   },
