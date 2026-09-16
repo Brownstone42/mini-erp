@@ -10,6 +10,7 @@
     </div>
 
     <Message v-if="loadError" severity="error" class="mt-5">{{ loadError }}</Message>
+    <Message v-if="pdfError" severity="error" class="mt-5">{{ pdfError }}</Message>
 
     <div class="mt-6 grid gap-4 sm:grid-cols-3">
       <div class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
@@ -64,12 +65,13 @@
         </Column>
         <Column header="" style="width: 12rem">
           <template #body="slotProps">
-            <Button label="Generate PDF" icon="pi pi-file-pdf" size="small" outlined :loading="generatingNumber === slotProps.data.quotationNumber" @click.stop="regenerate(slotProps.data)" />
+            <Button label="Generate PDF" icon="pi pi-file-pdf" size="small" outlined :loading="generatingNumber === slotProps.data.quotationNumber" :disabled="Boolean(generatingNumber)" @click.stop="regenerate(slotProps.data)" />
           </template>
         </Column>
         <template #empty><div class="py-8 text-center text-surface-500">ไม่พบประวัติใบเสนอราคา</div></template>
       </DataTable>
     </section>
+    <QuotationCreateView v-if="generatingNumber" ref="pdfGenerator" pdf-only />
   </section>
 </template>
 
@@ -80,12 +82,13 @@ import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import { fetchQuotations } from '../../services/quotation-data.js'
+import QuotationCreateView from './QuotationCreateView.vue'
 
 export default {
   name: 'QuotationListView',
-  components: { Button, Column, DataTable, InputText, Message },
+  components: { Button, Column, DataTable, InputText, Message, QuotationCreateView },
   data() {
-    return { quotations: [], searchText: '', loading: false, loadError: '', generatingNumber: '' }
+    return { quotations: [], searchText: '', loading: false, loadError: '', pdfError: '', generatingNumber: '' }
   },
   computed: {
     filteredQuotations() {
@@ -117,9 +120,20 @@ export default {
     openQuotation(item) {
       void this.$router.push({ name: 'quotation-detail', params: { quotationNumber: item.quotationNumber } })
     },
-    regenerate(item) {
+    async regenerate(item) {
+      if (this.generatingNumber) return
+      this.pdfError = ''
       this.generatingNumber = item.quotationNumber
-      void this.$router.push({ name: 'quotation-detail', params: { quotationNumber: item.quotationNumber }, query: { download: '1' } })
+      try {
+        await this.$nextTick()
+        const downloaded = await this.$refs.pdfGenerator.downloadSavedQuotation(item.quotationNumber)
+        if (!downloaded) this.pdfError = `สร้าง PDF ใบเสนอราคา ${item.quotationNumber} ไม่สำเร็จ กรุณาลองอีกครั้ง`
+      } catch (error) {
+        console.error(error)
+        this.pdfError = `ไม่สามารถโหลดใบเสนอราคา ${item.quotationNumber} เพื่อสร้าง PDF ได้ กรุณาลองอีกครั้ง`
+      } finally {
+        this.generatingNumber = ''
+      }
     },
     displayDate(value) {
       if (!value) return '—'

@@ -1,6 +1,6 @@
 <template>
   <section>
-    <div class="flex flex-wrap items-start justify-between gap-4">
+    <div v-if="!pdfOnly" class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="text-sm font-medium text-primary-600">Sales</p>
         <h2 class="mt-1 text-3xl font-semibold tracking-tight">{{ isHistoryMode ? `ใบเสนอราคา ${quotationNumber}` : 'ออกใบเสนอราคา' }}</h2>
@@ -13,11 +13,13 @@
       </div>
     </div>
 
-    <Message v-if="loadError" severity="error" class="mt-5">{{ loadError }}</Message>
-    <Message v-if="formError" severity="error" class="mt-5">{{ formError }}</Message>
-    <Message v-if="issued" severity="success" class="mt-5">{{ isHistoryMode ? `โหลดใบเสนอราคา ${quotationNumber} จากประวัติแล้ว` : `ออกใบเสนอราคา ${quotationNumber} และบันทึกลงฐานข้อมูลแล้ว` }}</Message>
+    <template v-if="!pdfOnly">
+      <Message v-if="loadError" severity="error" class="mt-5">{{ loadError }}</Message>
+      <Message v-if="formError" severity="error" class="mt-5">{{ formError }}</Message>
+      <Message v-if="issued" severity="success" class="mt-5">{{ isHistoryMode ? `โหลดใบเสนอราคา ${quotationNumber} จากประวัติแล้ว` : `ออกใบเสนอราคา ${quotationNumber} และบันทึกลงฐานข้อมูลแล้ว` }}</Message>
+    </template>
 
-    <fieldset :disabled="issued || Boolean(loadError)" class="mt-6 space-y-6 disabled:opacity-75">
+    <fieldset v-if="!pdfOnly" :disabled="issued || Boolean(loadError)" class="mt-6 space-y-6 disabled:opacity-75">
       <section class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
         <div class="grid gap-4 lg:grid-cols-3">
           <label class="block">
@@ -269,6 +271,7 @@ function copyComputedStyles(sourceRoot, clonedRoot) {
 export default {
   name: 'QuotationCreateView',
   components: { AutoComplete, Button, Checkbox, DatePicker, InputNumber, InputText, Message, Select, Textarea },
+  props: { pdfOnly: { type: Boolean, default: false } },
   data() {
     return {
       logoUrl,
@@ -314,6 +317,7 @@ export default {
     useSignatory(value) { if (!value) { this.pdfSignatureUrl = ''; this.pdfStampUrl = '' } }
   },
   async mounted() {
+    if (this.pdfOnly) return
     const savedQuotationNumber = String(this.$route.params.quotationNumber || '')
     if (!savedQuotationNumber) this.addLine()
     try {
@@ -346,6 +350,11 @@ export default {
     })
   },
   methods: {
+    async downloadSavedQuotation(quotationNumber) {
+      this.signatories = await fetchSignatories()
+      await this.loadSavedQuotation(quotationNumber)
+      return this.downloadPdf()
+    },
     newLine() { return { id: crypto.randomUUID(), productSelection: null, productCode: '', description: '', unitText: '', quantity: 1, unitPrice: 0 } },
     addLine() { this.lines.push(this.newLine()) },
     removeLine(index) { if (this.lines.length > 1) this.lines.splice(index, 1) },
@@ -504,9 +513,11 @@ export default {
           pdf.addImage(canvas.toDataURL('image/jpeg', 0.94), 'JPEG', 0, 0, 210, 297, undefined, 'FAST')
         }
         pdf.save(`quotation-${this.quotationNumber}.pdf`)
+        return true
       } catch (error) {
         console.error(error)
         this.formError = 'บันทึกใบเสนอราคาแล้ว แต่สร้างไฟล์ PDF ไม่สำเร็จ กรุณากดดาวน์โหลด PDF อีกครั้ง'
+        return false
       } finally { this.creatingPdf = false }
     },
     resetForm() {
