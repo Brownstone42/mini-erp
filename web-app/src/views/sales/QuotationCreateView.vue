@@ -3,20 +3,21 @@
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="text-sm font-medium text-primary-600">Sales</p>
-        <h2 class="mt-1 text-3xl font-semibold tracking-tight">ออกใบเสนอราคา</h2>
+        <h2 class="mt-1 text-3xl font-semibold tracking-tight">{{ isHistoryMode ? `ใบเสนอราคา ${quotationNumber}` : 'ออกใบเสนอราคา' }}</h2>
         <p class="mt-2 text-sm text-surface-500">ราคาต่อหน่วยและยอดรวมเป็นราคารวม VAT แล้ว</p>
       </div>
       <div class="flex gap-2">
-        <Button v-if="issued" label="สร้างใบใหม่" icon="pi pi-plus" severity="secondary" outlined @click="resetForm" />
+        <Button label="ประวัติใบเสนอราคา" icon="pi pi-history" severity="secondary" outlined @click="$router.push({ name: 'quotation-list' })" />
+        <Button v-if="issued" label="สร้างใบใหม่" icon="pi pi-plus" severity="secondary" outlined @click="goNewQuotation" />
         <Button v-if="issued" label="ดาวน์โหลด PDF อีกครั้ง" icon="pi pi-file-pdf" :loading="creatingPdf" @click="downloadPdf" />
       </div>
     </div>
 
     <Message v-if="loadError" severity="error" class="mt-5">{{ loadError }}</Message>
     <Message v-if="formError" severity="error" class="mt-5">{{ formError }}</Message>
-    <Message v-if="issued" severity="success" class="mt-5">ออกใบเสนอราคา {{ quotationNumber }} และบันทึกลงฐานข้อมูลแล้ว</Message>
+    <Message v-if="issued" severity="success" class="mt-5">{{ isHistoryMode ? `โหลดใบเสนอราคา ${quotationNumber} จากประวัติแล้ว` : `ออกใบเสนอราคา ${quotationNumber} และบันทึกลงฐานข้อมูลแล้ว` }}</Message>
 
-    <fieldset :disabled="issued" class="mt-6 space-y-6 disabled:opacity-75">
+    <fieldset :disabled="issued || Boolean(loadError)" class="mt-6 space-y-6 disabled:opacity-75">
       <section class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
         <div class="grid gap-4 lg:grid-cols-3">
           <label class="block">
@@ -138,7 +139,7 @@
           </div>
         </div>
         <div class="mt-5 flex justify-end">
-          <Button label="ออกใบเสนอราคาและดาวน์โหลด PDF" icon="pi pi-file-pdf" size="large" :loading="saving || creatingPdf" :disabled="!quotationNumber || saving || creatingPdf" @click="issueQuotation" />
+          <Button label="ออกใบเสนอราคาและดาวน์โหลด PDF" icon="pi pi-file-pdf" size="large" :loading="saving || creatingPdf" :disabled="!quotationNumber || saving || creatingPdf || Boolean(loadError)" @click="issueQuotation" />
         </div>
       </section>
     </fieldset>
@@ -231,7 +232,7 @@ import logoUrl from '../../assets/logo.png'
 import { fetchCustomers } from '../../services/customer-data.js'
 import { fetchProducts } from '../../services/product-data.js'
 import { fetchProductGroup, fetchProductGroups } from '../../services/product-group-data.js'
-import { createQuotation, previewNextQuotationNumber } from '../../services/quotation-data.js'
+import { createQuotation, fetchQuotation, previewNextQuotationNumber } from '../../services/quotation-data.js'
 import { fetchSignatories } from '../../services/signatory-data.js'
 import { quotationTotal, thaiBahtText } from '../../utils/quotation.js'
 
@@ -284,6 +285,7 @@ export default {
     totalAmount() { return quotationTotal(this.lines) },
     signatoryOptions() { return this.signatories.filter((item) => item.isActive && item.signatureUrl).map((item) => ({ label: item.fullName, value: item.id })) },
     selectedSignatory() { return this.useSignatory ? this.signatories.find((item) => item.id === this.selectedSignatoryId) || null : null },
+    isHistoryMode() { return Boolean(this.$route.params.quotationNumber) },
     productGroupOptions() { return [{ label: 'สินค้าทั้งหมด', value: 'ALL' }, ...this.productGroups.map((group) => ({ label: `${group.groupName} (${group.productCount.toLocaleString('th-TH')})`, value: group.id }))] },
     quotationDateIso() {
       const year = this.quotationDate.getFullYear()
@@ -312,13 +314,27 @@ export default {
     useSignatory(value) { if (!value) { this.pdfSignatureUrl = ''; this.pdfStampUrl = '' } }
   },
   async mounted() {
-    this.addLine()
+    const savedQuotationNumber = String(this.$route.params.quotationNumber || '')
+    if (!savedQuotationNumber) this.addLine()
     try {
-      ;[this.customers, this.products, this.productGroups, this.signatories] = await Promise.all([fetchCustomers(), fetchProducts(), fetchProductGroups(), fetchSignatories()])
-      await this.refreshQuotationNumber()
+      if (savedQuotationNumber) {
+        this.signatories = await fetchSignatories()
+        await this.loadSavedQuotation(savedQuotationNumber)
+        if (this.$route.query.download === '1') {
+          await this.$nextTick()
+          await this.downloadPdf()
+          await this.$router.replace({ name: 'quotation-detail', params: { quotationNumber: savedQuotationNumber } })
+        }
+      } else {
+        ;[this.customers, this.products, this.productGroups, this.signatories] = await Promise.all([fetchCustomers(), fetchProducts(), fetchProductGroups(), fetchSignatories()])
+        await this.refreshQuotationNumber()
+      }
     } catch (error) {
       console.error(error)
-      this.loadError = 'ยังไม่สามารถโหลดข้อมูลสำหรับใบเสนอราคาได้ กรุณาตรวจสอบว่าได้ Deploy Data Connect schema และ connector รุ่นล่าสุดแล้ว'
+      this.issued = false
+      this.loadError = savedQuotationNumber
+        ? error.message === 'QUOTATION_NOT_FOUND' ? 'ไม่พบใบเสนอราคานี้ในระบบ' : 'ไม่สามารถโหลดใบเสนอราคาจากประวัติได้ กรุณาตรวจสอบ Data Connect connector'
+        : 'ยังไม่สามารถโหลดข้อมูลสำหรับใบเสนอราคาได้ กรุณาตรวจสอบว่าได้ Deploy Data Connect schema และ connector รุ่นล่าสุดแล้ว'
     } finally {
       this.loading = false
     }
@@ -376,6 +392,38 @@ export default {
       line.description = product.productName
       line.unitText = product.salesUnit || product.smallUnit || ''
       if (product.standardPrice != null) line.unitPrice = Number(product.standardPrice)
+    },
+    async loadSavedQuotation(quotationNumber) {
+      const quotation = await fetchQuotation(quotationNumber)
+      if (!quotation) throw new Error('QUOTATION_NOT_FOUND')
+      this.issued = true
+      this.quotationNumber = quotation.quotationNumber
+      const [year, month, day] = String(quotation.quotationDate).slice(0, 10).split('-').map(Number)
+      this.quotationDate = new Date(year, month - 1, day)
+      this.customerSelection = quotation.customerName
+      this.customerCode = quotation.customerCode || ''
+      this.customerName = quotation.customerName || ''
+      this.customerAddress = quotation.addressText || ''
+      this.customerEmail = quotation.email || ''
+      this.customerPhone = quotation.phoneText || ''
+      this.remarkText = quotation.remarkText || ''
+      this.useSignatory = Boolean(quotation.signatoryId)
+      this.selectedSignatoryId = quotation.signatoryId || null
+      this.lines = (quotation.lines || []).map((line) => {
+        return {
+          id: crypto.randomUUID(),
+          productSelection: line.productCode ? { productCode: line.productCode, productLabel: line.productCode } : null,
+          productCode: line.productCode || '',
+          description: line.description || '',
+          unitText: line.unitText || '',
+          quantity: Number(line.quantity) || 0,
+          unitPrice: Number(line.unitPrice) || 0
+        }
+      })
+      if (this.selectedSignatoryId) {
+        if (!this.selectedSignatory) throw new Error('SAVED_SIGNATORY_NOT_FOUND')
+        await this.prepareSignatoryImages()
+      }
     },
     async refreshQuotationNumber() {
       this.quotationNumber = ''
@@ -468,6 +516,7 @@ export default {
       this.pdfSignatureUrl = ''; this.pdfStampUrl = ''
       this.quotationDate = new Date(); this.lines = [this.newLine()]; void this.refreshQuotationNumber()
     },
+    goNewQuotation() { void this.$router.push({ name: 'quotation-create' }) },
     money(value) { return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 }).format(Number(value) || 0) },
     moneyPlain(value) { return new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0) },
     quantity(value) { return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 4 }).format(Number(value) || 0) },

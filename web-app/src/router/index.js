@@ -28,6 +28,7 @@ const ProductSalesPriceReportView = () => import('../views/reports/ProductSalesP
 const ProductGroupListView = () => import('../views/settings/ProductGroupListView.vue')
 const ProductGroupDetailView = () => import('../views/settings/ProductGroupDetailView.vue')
 const SignatoryListView = () => import('../views/settings/SignatoryListView.vue')
+const QuotationListView = () => import('../views/sales/QuotationListView.vue')
 const QuotationCreateView = () => import('../views/sales/QuotationCreateView.vue')
 const CompanyWorkspaceView = () => import('../views/CompanyWorkspaceView.vue')
 
@@ -123,8 +124,18 @@ const routes = [
         meta: { returnScrollKey: 'product-category-list' }
       },
       {
+        path: 'sales/quotations',
+        name: 'quotation-list',
+        component: QuotationListView
+      },
+      {
         path: 'sales/quotations/new',
         name: 'quotation-create',
+        component: QuotationCreateView
+      },
+      {
+        path: 'sales/quotations/:quotationNumber',
+        name: 'quotation-detail',
         component: QuotationCreateView
       },
       {

@@ -18,6 +18,24 @@ export async function previewNextQuotationNumber(quotationDate) {
   return nextQuotationNumber(prefix, await latestQuotationNumber(prefix))
 }
 
+export async function fetchQuotations() {
+  const pageSize = 100
+  const quotations = []
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await executeQuery(queryRef(dataConnect, 'ListQuotations', { limit: pageSize, offset }), serverOnly)
+    const page = result.data?.quotations || []
+    quotations.push(...page)
+    if (page.length < pageSize) return quotations
+  }
+}
+
+export async function fetchQuotation(quotationNumber) {
+  const result = await executeQuery(queryRef(dataConnect, 'GetQuotation', { quotationNumber }), serverOnly)
+  const quotation = result.data?.quotation
+  if (!quotation) return null
+  return { ...quotation, lines: result.data?.lines || [] }
+}
+
 export async function createQuotation(quotation) {
   const prefix = quotationMonthPrefix(quotation.quotationDate)
   const requestId = crypto.randomUUID()

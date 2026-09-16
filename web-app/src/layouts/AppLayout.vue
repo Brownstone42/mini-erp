@@ -29,7 +29,7 @@
               <i class="pi text-xs" :class="salesOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
             </button>
             <div v-show="salesOpen" class="mt-1 border-l border-surface-200 pl-3">
-              <RouterLink to="/sales/quotations/new" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-file-pdf" /> Quotation</RouterLink>
+              <RouterLink to="/sales/quotations" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-file-pdf" /> Quotation</RouterLink>
             </div>
           </section>
 

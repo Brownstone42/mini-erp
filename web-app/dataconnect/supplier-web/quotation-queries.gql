@@ -16,6 +16,21 @@ query ListQuotations($limit: Int = 100, $offset: Int = 0)
   }
 }
 
+query GetQuotation($quotationNumber: String!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users can reopen an issued quotation and regenerate its PDF from the saved snapshot.") {
+  quotation(key: { quotationNumber: $quotationNumber }) {
+    quotationNumber quotationDate customerCode customerName
+    addressText email phoneText signatoryId remarkText totalAmount createdAt
+  }
+  lines: quotationLines(
+    where: { quotationNumber: { eq: $quotationNumber } }
+    limit: 1000
+    orderBy: { lineNumber: ASC }
+  ) {
+    lineNumber productCode description unitText quantity unitPrice lineTotal
+  }
+}
+
 query GetQuotationByRequestId($requestId: UUID!)
   @auth(level: USER, insecureReason: "Authenticated ERP users use the client request ID to safely recover an issued quotation after an uncertain network response.") {
   quotations(where: { requestId: { eq: $requestId } }, limit: 1) {
