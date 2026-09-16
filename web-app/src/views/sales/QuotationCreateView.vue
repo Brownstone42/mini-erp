@@ -248,6 +248,23 @@ async function imageDataUrl(url) {
   })
 }
 
+function copyComputedStyles(sourceRoot, clonedRoot) {
+  const sourceNodes = [sourceRoot, ...sourceRoot.querySelectorAll('*')]
+  const clonedNodes = [clonedRoot, ...clonedRoot.querySelectorAll('*')]
+  sourceNodes.forEach((sourceNode, index) => {
+    const clonedNode = clonedNodes[index]
+    if (!clonedNode) return
+    const computedStyle = window.getComputedStyle(sourceNode)
+    for (const property of computedStyle) {
+      clonedNode.style.setProperty(
+        property,
+        computedStyle.getPropertyValue(property),
+        computedStyle.getPropertyPriority(property)
+      )
+    }
+  })
+}
+
 export default {
   name: 'QuotationCreateView',
   components: { AutoComplete, Button, Checkbox, DatePicker, InputNumber, InputText, Message, Select, Textarea },
@@ -420,7 +437,21 @@ export default {
         await Promise.all(pageElements.flatMap((page) => Array.from(page.querySelectorAll('img'))).map((image) => typeof image.decode === 'function' ? image.decode().catch(() => undefined) : Promise.resolve()))
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
         for (let index = 0; index < pageElements.length; index += 1) {
-          const canvas = await html2canvas(pageElements[index], { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+          const sourcePage = pageElements[index]
+          const canvas = await html2canvas(sourcePage, {
+            scale: 2,
+            width: 794,
+            height: 1123,
+            windowWidth: 794,
+            windowHeight: 1123,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            logging: false,
+            onclone: (clonedDocument) => {
+              const clonedPage = clonedDocument.querySelectorAll('.quotation-page')[index]
+              if (clonedPage) copyComputedStyles(sourcePage, clonedPage)
+            }
+          })
           if (index > 0) pdf.addPage('a4', 'portrait')
           pdf.addImage(canvas.toDataURL('image/jpeg', 0.94), 'JPEG', 0, 0, 210, 297, undefined, 'FAST')
         }
