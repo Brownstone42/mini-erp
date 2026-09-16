@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
+import { defineSecret } from 'firebase-functions/params'
 import { setGlobalOptions } from 'firebase-functions/v2'
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https'
 import { adminListSuppliers } from './dataconnect-admin-generated/esm/index.esm.js'
@@ -18,6 +19,7 @@ import { assertPurchaseHistoryImportAdmin, importPurchaseHistorySnapshot } from 
 import { parseExpressStock } from './stock-parser.js'
 import { buildStockPreview } from './stock-preview.js'
 import { assertStockImportAdmin, importStockSnapshot } from './stock-import.js'
+import { isValidBackendImportKey } from './backend-import-auth.js'
 
 initializeApp()
 
@@ -33,6 +35,7 @@ setGlobalOptions({
 })
 
 const SALES_HISTORY_QUERY_PAGE_SIZE = 6000
+const BACKEND_IMPORT_KEY = defineSecret('BACKEND_IMPORT_KEY')
 
 async function listAllSalesHistoryForPeriod(periodStart, periodEnd) {
   const rows = []
@@ -251,6 +254,93 @@ export const confirmPurchaseHistoryImport = onCall({ cors: true, timeoutSeconds:
     throw new HttpsError('internal', 'ไม่สามารถ Import Purchase History ได้ ระบบไม่ได้เปลี่ยนแปลงข้อมูล')
   }
 })
+
+function hasValidBackendImportKey(request) {
+  const actual = request.get('x-mini-erp-import-key') || ''
+  const expected = BACKEND_IMPORT_KEY.value()
+  return isValidBackendImportKey(actual, expected)
+}
+
+export const backendImportPurchaseHistory = onRequest({
+  cors: false,
+  timeoutSeconds: 300,
+  memory: '1GiB',
+  maxInstances: 1,
+  secrets: [BACKEND_IMPORT_KEY]
+}, async (request, response) => {
+  if (request.method !== 'POST') {
+    response.set('Allow', 'POST').status(405).json({ ok: false, error: 'method-not-allowed' })
+    return
+  }
+  if (!hasValidBackendImportKey(request)) {
+    response.status(401).json({ ok: false, error: 'unauthorized' })
+    return
+  }
+
+  const { fileName, fileBase64, commit = false } = request.body || {}
+  if (typeof fileName !== 'string' || !fileName.toLowerCase().endsWith('.csv') || typeof fileBase64 !== 'string' || fileBase64.length === 0 || fileBase64.length > 3_000_000) {
+    response.status(400).json({ ok: false, error: 'invalid-file' })
+    return
+  }
+
+  try {
+    const normalizedFileName = fileName.trim()
+    const fileBuffer = Buffer.from(fileBase64, 'base64')
+    const parsed = parseExpressPurchaseHistory(fileBuffer)
+    if (!parsed.periodStart || !parsed.periodEnd) {
+      const preview = buildPurchaseHistoryPreview({ fileName: normalizedFileName, fileBuffer })
+      response.status(422).json({ ok: false, imported: false, preview: compactPurchaseHistoryPreview(preview) })
+      return
+    }
+
+    const [existingResult, productResult, supplierResult] = await Promise.all([
+      dataConnect.executeQuery('AdminListPurchaseHistoryForPeriod', { periodStart: parsed.periodStart, periodEnd: parsed.periodEnd, limit: 6000, offset: 0 }),
+      dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 }),
+      adminListSuppliers({ limit: 2000, offset: 0 })
+    ])
+    const previewOptions = {
+      fileName: normalizedFileName,
+      fileBuffer,
+      existingRows: existingResult.data?.purchaseHistoryLines || [],
+      products: productResult.data?.products || [],
+      supplierCodes: (supplierResult.data?.suppliers || []).map((item) => item.supplierCode)
+    }
+    const preview = buildPurchaseHistoryPreview(previewOptions)
+    const compactPreview = compactPurchaseHistoryPreview(preview)
+    if (!preview.isValid) {
+      response.status(422).json({ ok: false, imported: false, preview: compactPreview })
+      return
+    }
+    if (commit !== true) {
+      response.json({ ok: true, imported: false, preview: compactPreview })
+      return
+    }
+
+    const result = await importPurchaseHistorySnapshot({
+      dataConnect,
+      ...previewOptions,
+      previewId: preview.previewId,
+      importedByUid: 'backend-automation',
+      findImportByHash: (sourceFileHash) => dataConnect.executeQuery('AdminGetPurchaseHistoryImportRunByHash', { sourceFileHash })
+    })
+    response.json({ ok: true, imported: !result.alreadyImported, alreadyImported: result.alreadyImported, preview: compactPreview, result })
+  } catch (error) {
+    console.error('Backend Purchase History import failed', error)
+    response.status(500).json({ ok: false, error: 'internal-error' })
+  }
+})
+
+function compactPurchaseHistoryPreview(preview) {
+  return {
+    previewId: preview.previewId,
+    fileName: preview.fileName,
+    periodStart: preview.periodStart,
+    periodEnd: preview.periodEnd,
+    isValid: preview.isValid,
+    summary: preview.summary,
+    errors: preview.errors.slice(0, 100)
+  }
+}
 
 export const previewStockImport = onCall({ cors: true, timeoutSeconds: 120 }, async (request) => {
   if (!request.auth || request.auth.token.firebase?.sign_in_provider === 'anonymous') throw new HttpsError('unauthenticated', 'กรุณาเข้าสู่ระบบก่อนตรวจสอบไฟล์')

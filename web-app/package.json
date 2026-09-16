@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "import:purchase": "node scripts/backend-import-purchase.mjs",
+    "setup:backend-import": "node scripts/setup-backend-import-secret.mjs",
     "test": "vitest run",
     "lint": "eslint ."
   },

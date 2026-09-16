@@ -199,14 +199,16 @@
         <section v-if="pageIndex === quotationPages.length - 1" class="quote-closing">
           <div class="closing-message">
             <p>We hope that our quotation meets your requirements.</p>
-            <img v-if="pdfStampUrl" :src="pdfStampUrl" alt="Company stamp" class="company-stamp" />
           </div>
-          <div class="signature">
-            <div class="signature-space"><img v-if="pdfSignatureUrl" :src="pdfSignatureUrl" alt="Authorized signature" /></div>
-            <div class="signature-line" />
-            <strong>{{ selectedSignatory?.fullName || 'Anawat B. Buppajarn' }}</strong>
-            <small>{{ selectedSignatory ? '(Authorized Director)' : '(Sales Manager)' }}</small>
-            <span>{{ displayNumericDate(quotationDate) }}</span>
+          <div class="approval-block">
+            <img v-if="pdfStampUrl" :src="pdfStampUrl" alt="Company stamp" class="company-stamp" />
+            <div class="signature">
+              <div class="signature-space"><img v-if="pdfSignatureUrl" :src="pdfSignatureUrl" alt="Authorized signature" /></div>
+              <div class="signature-line" />
+              <strong>{{ selectedSignatory?.fullName || 'Anawat B. Buppajarn' }}</strong>
+              <small>{{ selectedSignatory ? '(Authorized Director)' : '(Sales Manager)' }}</small>
+              <span>{{ displayNumericDate(quotationDate) }}</span>
+            </div>
           </div>
         </section>
         <div class="quote-footer">IDEAL GLOBE CO.,LTD.</div>
@@ -466,7 +468,7 @@ export default {
 .quote-intro { margin: 44px 0 14px; text-align: center; color: #b89b62; font-size: 13px; }
 .quote-table-wrap { position: relative; min-height: 465px; overflow: hidden; border: 1px solid #c3a463; border-radius: 10px; }
 .quote-table-wrap.with-summary { min-height: 520px; }
-.watermark { position: absolute; z-index: 0; top: 94px; left: 150px; width: 390px; height: 310px; object-fit: contain; opacity: .055; }
+.watermark { position: absolute; z-index: 0; top: 60px; left: 150px; width: 390px; height: 310px; object-fit: contain; opacity: .055; }
 .quote-table { position: relative; z-index: 1; width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
 .quote-table th { height: 44px; border-bottom: 1px solid #c3a463; padding: 0 8px; text-align: center; font-weight: 700; }
 .quote-table th:nth-child(1) { width: 48px; }
@@ -487,7 +489,8 @@ export default {
 .quote-closing { display: flex; justify-content: space-between; align-items: flex-start; padding: 26px 30px 0; font-size: 11px; }
 .closing-message { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; }
 .closing-message p { margin-top: 10px; }
-.company-stamp { width: 110px; height: 72px; margin-top: 8px; object-fit: contain; }
+.approval-block { display: flex; align-items: flex-start; gap: 8px; }
+.company-stamp { width: 110px; height: 72px; margin-top: -2px; object-fit: contain; }
 .signature { display: flex; width: 205px; flex-direction: column; align-items: center; }
 .signature-space { display: grid; width: 180px; height: 40px; place-items: center; }
 .signature-space img { max-width: 155px; max-height: 44px; object-fit: contain; }

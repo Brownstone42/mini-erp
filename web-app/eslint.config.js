@@ -9,6 +9,14 @@ export default [
   js.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node
+    }
+  },
+  {
     files: ['**/*.{js,vue}'],
     languageOptions: {
       ecmaVersion: 'latest',

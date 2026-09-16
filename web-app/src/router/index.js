@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { onAuthStateChanged } from 'firebase/auth'
 import { firebaseAuth } from '../services/firebase.js'
+import { useCompanyStore } from '../stores/company.js'
+import { pinia } from '../stores/pinia.js'
 
 const AppLayout = () => import('../layouts/AppLayout.vue')
 const LoginView = () => import('../views/auth/LoginView.vue')
@@ -27,6 +29,7 @@ const ProductGroupListView = () => import('../views/settings/ProductGroupListVie
 const ProductGroupDetailView = () => import('../views/settings/ProductGroupDetailView.vue')
 const SignatoryListView = () => import('../views/settings/SignatoryListView.vue')
 const QuotationCreateView = () => import('../views/sales/QuotationCreateView.vue')
+const CompanyWorkspaceView = () => import('../views/CompanyWorkspaceView.vue')
 
 const routes = [
   {
@@ -43,6 +46,11 @@ const routes = [
         path: '',
         name: 'dashboard',
         component: DashboardView
+      },
+      {
+        path: 'company',
+        name: 'company-workspace',
+        component: CompanyWorkspaceView
       },
       {
         path: 'master-data/suppliers',
@@ -224,6 +232,11 @@ router.beforeEach(async (to, from) => {
   const user = firebaseAuth.currentUser || await getCurrentUser()
   if (!to.meta.public && !user) return { name: 'login', query: { redirect: to.fullPath } }
   if (to.name === 'login' && user) return { name: 'dashboard' }
+  if (user && !to.meta.public) {
+    const companyStore = useCompanyStore(pinia)
+    if (!companyStore.isIdealGlobe && to.name !== 'company-workspace') return { name: 'company-workspace' }
+    if (companyStore.isIdealGlobe && to.name === 'company-workspace') return { name: 'dashboard' }
+  }
   return true
 })
 
