@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 export const COMPANY_OPTIONS = Object.freeze([
   { id: 'idealglobe', name: 'Ideal Globe', shortName: 'Ideal Globe', database: 'minierp', ready: true },
-  { id: 'goodbooch', name: 'Goodbooch', shortName: 'Goodbooch', database: 'goodboocherp', ready: false }
+  { id: 'goodbooch', name: 'Goodbooch', shortName: 'Goodbooch', database: 'goodboocherp', ready: true }
 ])
 
 function initialCompanyId() {

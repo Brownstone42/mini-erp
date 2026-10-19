@@ -39,8 +39,17 @@ function mapCategory(category) {
 }
 
 export async function fetchProducts() {
-  const result = await executeQuery(queryRef(productDataConnect, 'ListProducts', { limit: 2000, offset: 0 }))
-  return (result.data?.products || []).map(mapProduct)
+  const pageSize = 2000
+  const products = []
+  let offset = 0
+  while (true) {
+    const result = await executeQuery(queryRef(productDataConnect, 'ListProducts', { limit: pageSize, offset }))
+    const page = result.data?.products || []
+    products.push(...page)
+    if (page.length < pageSize) break
+    offset += pageSize
+  }
+  return products.map(mapProduct)
 }
 
 export async function fetchProduct(productCode) {

@@ -16,6 +16,7 @@
     <template v-if="!pdfOnly">
       <Message v-if="loadError" severity="error" class="mt-5">{{ loadError }}</Message>
       <Message v-if="formError" severity="error" class="mt-5">{{ formError }}</Message>
+      <Message v-if="copySourceNumber && !issued" severity="info" class="mt-5">คัดลอกข้อมูลจากใบเสนอราคา {{ copySourceNumber }} เพื่อออกใบใหม่ เอกสารเดิมจะไม่ถูกแก้ไข</Message>
       <Message v-if="issued" severity="success" class="mt-5">{{ isHistoryMode ? `โหลดใบเสนอราคา ${quotationNumber} จากประวัติแล้ว` : `ออกใบเสนอราคา ${quotationNumber} และบันทึกลงฐานข้อมูลแล้ว` }}</Message>
     </template>
 
@@ -31,7 +32,7 @@
             <DatePicker v-model="quotationDate" date-format="dd/mm/yy" show-icon class="w-full" />
           </label>
           <div class="rounded-lg bg-primary-50 p-4">
-            <p class="text-xs text-primary-600">ยอดรวมสุทธิ (รวม VAT)</p>
+            <p class="text-xs text-primary-600">ยอดรวมสุทธิ {{ includesShipping ? '(รวม VAT และค่าจัดส่ง)' : '(รวม VAT)' }}</p>
             <p class="mt-1 text-2xl font-semibold text-primary-700">{{ money(totalAmount) }}</p>
           </div>
         </div>
@@ -117,10 +118,22 @@
 
       <section class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
         <div class="grid gap-5 lg:grid-cols-2">
-          <label class="block">
-            <span class="mb-2 block text-sm font-medium text-surface-600">หมายเหตุ</span>
-            <InputText v-model="remarkText" class="w-full" />
-          </label>
+          <div class="space-y-4">
+            <div class="rounded-lg border border-surface-200 p-4">
+              <div class="flex items-center gap-2">
+                <Checkbox v-model="includesShipping" input-id="include-shipping" binary />
+                <label for="include-shipping" class="cursor-pointer text-sm font-medium text-surface-700">รวมค่าจัดส่งในใบเสนอราคา</label>
+              </div>
+              <label v-if="includesShipping" class="mt-4 block">
+                <span class="mb-2 block text-sm font-medium text-surface-600">ค่าจัดส่ง</span>
+                <InputNumber v-model="shippingAmount" mode="currency" currency="THB" locale="th-TH" :min="0" :min-fraction-digits="2" :max-fraction-digits="2" input-class="w-full text-right" class="w-full" />
+              </label>
+            </div>
+            <label class="block">
+              <span class="mb-2 block text-sm font-medium text-surface-600">หมายเหตุ</span>
+              <InputText v-model="remarkText" class="w-full" />
+            </label>
+          </div>
           <div>
             <div class="flex items-center gap-2">
               <Checkbox v-model="useSignatory" input-id="use-signatory" binary />
@@ -194,7 +207,11 @@
           </table>
           <div v-if="pageIndex === quotationPages.length - 1" class="quote-summary">
             <div class="remarks"><strong>REMARKS</strong><p>- {{ remarkText }}</p></div>
-            <div class="summary-total"><span>Grand Total<br /><small>(รวม VAT แล้ว)</small></span><strong>{{ moneyPlain(totalAmount) }}</strong></div>
+            <div class="summary-total">
+              <div class="summary-row"><span>Subtotal <small>(รวม VAT แล้ว)</small></span><strong>{{ moneyPlain(itemTotal) }}</strong></div>
+              <div v-if="includesShipping" class="summary-row"><span>Shipping</span><strong>{{ moneyPlain(effectiveShippingAmount) }}</strong></div>
+              <div class="summary-row grand-total"><span>Grand Total</span><strong>{{ moneyPlain(totalAmount) }}</strong></div>
+            </div>
             <div class="baht-text">({{ thaiTotal }})</div>
           </div>
         </section>
@@ -235,21 +252,8 @@ import { fetchCustomers } from '../../services/customer-data.js'
 import { fetchProducts } from '../../services/product-data.js'
 import { fetchProductGroup, fetchProductGroups } from '../../services/product-group-data.js'
 import { createQuotation, fetchQuotation, previewNextQuotationNumber } from '../../services/quotation-data.js'
-import { fetchSignatories } from '../../services/signatory-data.js'
-import { quotationTotal, thaiBahtText } from '../../utils/quotation.js'
-
-async function imageDataUrl(url) {
-  if (!url) return ''
-  const response = await fetch(url, { cache: 'no-store' })
-  if (!response.ok) throw new Error(`Cannot load signatory image: ${response.status}`)
-  const blob = await response.blob()
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result || ''))
-    reader.onerror = () => reject(reader.error || new Error('Cannot convert signatory image'))
-    reader.readAsDataURL(blob)
-  })
-}
+import { fetchSignatories, fetchSignatoryPdfImages } from '../../services/signatory-data.js'
+import { quotationGrandTotal, quotationTotal, thaiBahtText } from '../../utils/quotation.js'
 
 function copyComputedStyles(sourceRoot, clonedRoot) {
   const sourceNodes = [sourceRoot, ...sourceRoot.querySelectorAll('*')]
@@ -277,15 +281,18 @@ export default {
       logoUrl,
       customers: [], products: [], productGroups: [], signatories: [], customerSuggestions: [], productSuggestions: [],
       selectedProductGroupId: 'ALL', selectedProductGroupCodes: new Set(), productSearchQuery: '', loadingProductGroup: false,
-      quotationDate: new Date(), quotationNumber: '', customerSelection: '', customerCode: '', customerName: '',
+      quotationDate: new Date(), quotationNumber: '', copySourceNumber: '', customerSelection: '', customerCode: '', customerName: '',
       customerAddress: '', customerEmail: '', customerPhone: '', remarkText: 'ยังไม่รวมค่าจัดส่ง',
+      includesShipping: false, shippingAmount: 0,
       useSignatory: false, selectedSignatoryId: null,
       pdfSignatureUrl: '', pdfStampUrl: '',
       lines: [], loading: true, saving: false, creatingPdf: false, issued: false, loadError: '', formError: ''
     }
   },
   computed: {
-    totalAmount() { return quotationTotal(this.lines) },
+    itemTotal() { return quotationTotal(this.lines) },
+    effectiveShippingAmount() { return this.includesShipping ? Math.max(0, Number(this.shippingAmount) || 0) : 0 },
+    totalAmount() { return quotationGrandTotal(this.lines, this.effectiveShippingAmount) },
     signatoryOptions() { return this.signatories.filter((item) => item.isActive && item.signatureUrl).map((item) => ({ label: item.fullName, value: item.id })) },
     selectedSignatory() { return this.useSignatory ? this.signatories.find((item) => item.id === this.selectedSignatoryId) || null : null },
     isHistoryMode() { return Boolean(this.$route.params.quotationNumber) },
@@ -305,7 +312,7 @@ export default {
   },
   watch: {
     customerSelection(value) {
-      if (typeof value === 'string') {
+      if (typeof value === 'string' && value !== this.customerName) {
         this.customerCode = ''
         this.customerName = value
       }
@@ -314,11 +321,17 @@ export default {
     selectedProductGroupId() { void this.loadSelectedProductGroup() }
     ,
     selectedSignatoryId() { this.pdfSignatureUrl = ''; this.pdfStampUrl = '' },
-    useSignatory(value) { if (!value) { this.pdfSignatureUrl = ''; this.pdfStampUrl = '' } }
+    useSignatory(value) { if (!value) { this.pdfSignatureUrl = ''; this.pdfStampUrl = '' } },
+    includesShipping(value) {
+      if (value && this.remarkText === 'ยังไม่รวมค่าจัดส่ง') this.remarkText = 'รวมค่าจัดส่งแล้ว'
+      if (!value && this.remarkText === 'รวมค่าจัดส่งแล้ว') this.remarkText = 'ยังไม่รวมค่าจัดส่ง'
+      if (!value) this.shippingAmount = 0
+    }
   },
   async mounted() {
     if (this.pdfOnly) return
     const savedQuotationNumber = String(this.$route.params.quotationNumber || '')
+    const copyFromNumber = String(this.$route.query.copyFrom || '')
     if (!savedQuotationNumber) this.addLine()
     try {
       if (savedQuotationNumber) {
@@ -331,12 +344,16 @@ export default {
         }
       } else {
         ;[this.customers, this.products, this.productGroups, this.signatories] = await Promise.all([fetchCustomers(), fetchProducts(), fetchProductGroups(), fetchSignatories()])
+        if (copyFromNumber) {
+          await this.loadSavedQuotation(copyFromNumber, { asDraft: true })
+          this.copySourceNumber = copyFromNumber
+        }
         await this.refreshQuotationNumber()
       }
     } catch (error) {
       console.error(error)
       this.issued = false
-      this.loadError = savedQuotationNumber
+      this.loadError = savedQuotationNumber || copyFromNumber
         ? error.message === 'QUOTATION_NOT_FOUND' ? 'ไม่พบใบเสนอราคานี้ในระบบ' : 'ไม่สามารถโหลดใบเสนอราคาจากประวัติได้ กรุณาตรวจสอบ Data Connect connector'
         : 'ยังไม่สามารถโหลดข้อมูลสำหรับใบเสนอราคาได้ กรุณาตรวจสอบว่าได้ Deploy Data Connect schema และ connector รุ่นล่าสุดแล้ว'
     } finally {
@@ -402,13 +419,15 @@ export default {
       line.unitText = product.salesUnit || product.smallUnit || ''
       if (product.standardPrice != null) line.unitPrice = Number(product.standardPrice)
     },
-    async loadSavedQuotation(quotationNumber) {
+    async loadSavedQuotation(quotationNumber, { asDraft = false } = {}) {
       const quotation = await fetchQuotation(quotationNumber)
       if (!quotation) throw new Error('QUOTATION_NOT_FOUND')
-      this.issued = true
-      this.quotationNumber = quotation.quotationNumber
-      const [year, month, day] = String(quotation.quotationDate).slice(0, 10).split('-').map(Number)
-      this.quotationDate = new Date(year, month - 1, day)
+      this.issued = !asDraft
+      if (!asDraft) {
+        this.quotationNumber = quotation.quotationNumber
+        const [year, month, day] = String(quotation.quotationDate).slice(0, 10).split('-').map(Number)
+        this.quotationDate = new Date(year, month - 1, day)
+      }
       this.customerSelection = quotation.customerName
       this.customerCode = quotation.customerCode || ''
       this.customerName = quotation.customerName || ''
@@ -416,6 +435,8 @@ export default {
       this.customerEmail = quotation.email || ''
       this.customerPhone = quotation.phoneText || ''
       this.remarkText = quotation.remarkText || ''
+      this.includesShipping = Boolean(quotation.includesShipping)
+      this.shippingAmount = this.includesShipping ? Number(quotation.shippingAmount) || 0 : 0
       this.useSignatory = Boolean(quotation.signatoryId)
       this.selectedSignatoryId = quotation.signatoryId || null
       this.lines = (quotation.lines || []).map((line) => {
@@ -429,7 +450,7 @@ export default {
           unitPrice: Number(line.unitPrice) || 0
         }
       })
-      if (this.selectedSignatoryId) {
+      if (this.selectedSignatoryId && !asDraft) {
         if (!this.selectedSignatory) throw new Error('SAVED_SIGNATORY_NOT_FOUND')
         await this.prepareSignatoryImages()
       }
@@ -442,6 +463,7 @@ export default {
     validateForm() {
       if (!this.customerName.trim()) return 'กรุณาระบุบริษัทลูกค้า'
       if (this.useSignatory && !this.selectedSignatory) return 'กรุณาเลือกกรรมการที่มีรูปลายเซ็น'
+      if (this.includesShipping && Number(this.shippingAmount) <= 0) return 'กรุณาระบุค่าจัดส่งมากกว่า 0 บาท'
       if (!this.lines.length) return 'กรุณาเพิ่มรายการสินค้า'
       const invalidIndex = this.lines.findIndex((line) => !line.productCode || !line.description.trim() || Number(line.quantity) <= 0 || Number(line.unitPrice) < 0)
       if (invalidIndex >= 0) return `กรุณาตรวจสอบรายการที่ ${invalidIndex + 1}: ต้องเลือกสินค้า ระบุรายละเอียด จำนวนมากกว่า 0 และราคาที่ถูกต้อง`
@@ -450,13 +472,10 @@ export default {
     async prepareSignatoryImages() {
       if (!this.selectedSignatory) { this.pdfSignatureUrl = ''; this.pdfStampUrl = ''; return }
       try {
-        const [signatureUrl, stampUrl] = await Promise.all([
-          imageDataUrl(this.selectedSignatory.signatureUrl),
-          imageDataUrl(this.selectedSignatory.stampUrl)
-        ])
-        if (!signatureUrl) throw new Error('Selected signatory has no signature image')
-        this.pdfSignatureUrl = signatureUrl
-        this.pdfStampUrl = stampUrl
+        const { signatureDataUrl, stampDataUrl } = await fetchSignatoryPdfImages(this.selectedSignatory)
+        if (!signatureDataUrl) throw new Error('Selected signatory has no signature image')
+        this.pdfSignatureUrl = signatureDataUrl
+        this.pdfStampUrl = stampDataUrl
       } catch (error) {
         throw new Error('SIGNATORY_IMAGE_LOAD_FAILED', { cause: error })
       }
@@ -472,7 +491,9 @@ export default {
           quotationDate: this.quotationDateIso, customerCode: this.customerCode, customerName: this.customerName,
           addressText: this.customerAddress, email: this.customerEmail, phoneText: this.customerPhone,
           signatoryId: this.selectedSignatory?.id || null,
-          remarkText: this.remarkText, totalAmount: this.totalAmount, lines: this.lines
+          remarkText: this.remarkText,
+          includesShipping: this.includesShipping, shippingAmount: this.effectiveShippingAmount,
+          totalAmount: this.totalAmount, lines: this.lines
         })
         this.issued = true
         await this.downloadPdf()
@@ -523,6 +544,7 @@ export default {
     resetForm() {
       this.issued = false; this.formError = ''; this.customerSelection = ''; this.customerCode = ''; this.customerName = ''
       this.customerAddress = ''; this.customerEmail = ''; this.customerPhone = ''; this.remarkText = 'ยังไม่รวมค่าจัดส่ง'
+      this.includesShipping = false; this.shippingAmount = 0
       this.useSignatory = false; this.selectedSignatoryId = null
       this.pdfSignatureUrl = ''; this.pdfStampUrl = ''
       this.quotationDate = new Date(); this.lines = [this.newLine()]; void this.refreshQuotationNumber()
@@ -573,9 +595,12 @@ export default {
 .quote-summary { position: absolute; z-index: 2; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: 1fr 230px; min-height: 130px; border-top: 1px solid #c3a463; background: rgba(249, 246, 238, .93); }
 .remarks { padding: 14px 18px; border-right: 1px solid rgba(195, 164, 99, .45); font-size: 11px; }
 .remarks p { margin: 10px 0 0; text-align: left; }
-.summary-total { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px; font-size: 14px; }
+.summary-total { display: flex; flex-direction: column; gap: 7px; padding: 13px 16px 30px; font-size: 11px; }
+.summary-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.summary-row strong { font-size: 12px; }
+.summary-row.grand-total { margin-top: 2px; border-top: 1px solid rgba(195, 164, 99, .45); padding-top: 7px; font-size: 14px; font-weight: 700; }
+.summary-row.grand-total strong { font-size: 17px; }
 .summary-total small { color: #596273; font-size: 9px; font-weight: 400; }
-.summary-total strong { font-size: 17px; }
 .baht-text { position: absolute; right: 16px; bottom: 15px; max-width: 300px; font-size: 10px; text-align: right; }
 .quote-closing { display: flex; justify-content: space-between; align-items: flex-start; padding: 26px 30px 0; font-size: 11px; }
 .closing-message { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; }

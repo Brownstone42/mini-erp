@@ -4,8 +4,8 @@ import test from 'node:test'
 import { parseExpressProducts } from '../src/product-parser.js'
 import { importStockSnapshot } from '../src/stock-import.js'
 
-const stockFile = new URL('../../../private-data/express-export/raw/express_stock_2026-09-07.csv', import.meta.url)
-const productFile = new URL('../../../private-data/express-export/raw/express_products_2026-08-31.csv', import.meta.url)
+const stockFile = new URL('../../../private-data/express-export/fixtures/express_stock_2026-09-07.csv', import.meta.url)
+const productFile = new URL('../../../private-data/express-export/fixtures/express_products_2026-08-31.csv', import.meta.url)
 
 test('imports Stock products and Lots in one transactional mutation', async () => {
   const fileBuffer = fs.readFileSync(stockFile)

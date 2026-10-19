@@ -1,0 +1,40 @@
+type GoodboochProduct @table(name: "products", key: "sku") {
+  sku: String!
+  productName: String! @col(name: "product_name") @searchable
+  inventoryMethod: String! @col(name: "inventory_method")
+  baseUnit: String! @col(name: "base_unit")
+  lowStockThreshold: Int! @col(name: "low_stock_threshold") @default(value: 0)
+  idealGlobeProductCode: String @col(name: "ideal_globe_product_code")
+  noteText: String @col(name: "note_text")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type GoodboochStockTransaction @table(name: "stock_transactions") {
+  id: UUID! @default(expr: "uuidV4()")
+  productSku: String! @col(name: "product_sku")
+  transactionType: String! @col(name: "transaction_type")
+  transactionDate: Date! @col(name: "transaction_date")
+  quantityChange: Int! @col(name: "quantity_change")
+  unitText: String! @col(name: "unit_text")
+  noteText: String @col(name: "note_text")
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+}
+
+type GoodboochSalesSkuMapping @table(name: "sales_sku_mappings") {
+  id: UUID! @default(expr: "uuidV4()")
+  shopCode: String! @col(name: "shop_code")
+  shopeeSku: String! @col(name: "shopee_sku") @searchable
+  listingName: String @col(name: "listing_name") @searchable
+  variantName: String @col(name: "variant_name")
+  productSku: String! @col(name: "product_sku")
+  stockEffect: String! @col(name: "stock_effect")
+  quantityPerOrder: Int! @col(name: "quantity_per_order") @default(value: 0)
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}

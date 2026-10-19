@@ -1,0 +1,7 @@
+query ListUnitMappings($limit: Int = 1000, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Unit Mapping is shared Master Data for authenticated ERP users.") {
+  unitMappings(limit: $limit, offset: $offset, orderBy: { sourceUnitText: ASC }) {
+    sourceUnitKey sourceUnitText standardUnitText noteText createdAt updatedAt
+  }
+}
+

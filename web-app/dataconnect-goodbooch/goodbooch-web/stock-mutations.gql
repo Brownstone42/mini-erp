@@ -1,0 +1,19 @@
+mutation CreateGoodboochStockTransaction(
+  $productSku: String!
+  $transactionType: String!
+  $transactionDate: Date!
+  $quantityChange: Int!
+  $unitText: String!
+  $noteText: String
+) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may record inventory movements.") {
+  goodboochStockTransaction_insert(data: {
+    productSku: $productSku
+    transactionType: $transactionType
+    transactionDate: $transactionDate
+    quantityChange: $quantityChange
+    unitText: $unitText
+    noteText: $noteText
+    createdByUid_expr: "auth.uid"
+    createdAt_expr: "request.time"
+  })
+}

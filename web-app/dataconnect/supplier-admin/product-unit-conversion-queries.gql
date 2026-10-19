@@ -1,0 +1,8 @@
+query AdminListProductUnitConversions($limit: Int = 2000, $offset: Int = 0) @auth(level: NO_ACCESS) {
+  productUnitConversions(limit: $limit, offset: $offset, orderBy: [{ productCode: ASC }, { sourceUnitText: ASC }]) {
+    productCode sourceUnitKey sourceUnitText baseUnitText baseQuantityPerSourceUnit
+  }
+  universalUnitConversions(limit: 100, orderBy: { sourceUnitText: ASC }) {
+    sourceUnitKey sourceUnitText baseUnitText baseQuantityPerSourceUnit
+  }
+}

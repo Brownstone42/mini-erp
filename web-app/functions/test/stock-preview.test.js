@@ -4,8 +4,8 @@ import test from 'node:test'
 import { parseExpressProducts } from '../src/product-parser.js'
 import { buildStockPreview } from '../src/stock-preview.js'
 
-const stockFile = new URL('../../../private-data/express-export/raw/express_stock_2026-09-07.csv', import.meta.url)
-const productFile = new URL('../../../private-data/express-export/raw/express_products_2026-08-31.csv', import.meta.url)
+const stockFile = new URL('../../../private-data/express-export/fixtures/express_stock_2026-09-07.csv', import.meta.url)
+const productFile = new URL('../../../private-data/express-export/fixtures/express_products_2026-08-31.csv', import.meta.url)
 
 test('builds a valid Stock preview against Product Master Data', () => {
   const products = parseExpressProducts(fs.readFileSync(productFile)).products

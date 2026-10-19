@@ -3,8 +3,7 @@
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="text-sm font-medium text-primary-600">Sales</p>
-        <h2 class="mt-1 text-3xl font-semibold tracking-tight">Quotation</h2>
-        <p class="mt-2 text-sm text-surface-500">ประวัติใบเสนอราคาที่ออกแล้วและดาวน์โหลด PDF ซ้ำจากข้อมูลเดิม</p>
+        <h2 class="mt-1 text-3xl font-semibold tracking-tight">ประวัติใบเสนอ</h2>
       </div>
       <Button label="ออกใบเสนอราคาใหม่" icon="pi pi-plus" @click="$router.push({ name: 'quotation-create' })" />
     </div>
@@ -12,31 +11,10 @@
     <Message v-if="loadError" severity="error" class="mt-5">{{ loadError }}</Message>
     <Message v-if="pdfError" severity="error" class="mt-5">{{ pdfError }}</Message>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-3">
-      <div class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-surface-500">ใบเสนอราคาทั้งหมด</p>
-        <p class="mt-1 text-2xl font-semibold">{{ quotations.length.toLocaleString('th-TH') }}</p>
-      </div>
-      <div class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-surface-500">วันที่เอกสารล่าสุด</p>
-        <p class="mt-1 text-2xl font-semibold">{{ latestQuotationDate }}</p>
-      </div>
-      <div class="rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-surface-500">ยอดรวมใบเสนอราคา</p>
-        <p class="mt-1 text-2xl font-semibold text-primary-700">{{ money(totalQuotedAmount) }}</p>
-      </div>
-    </div>
-
     <section class="mt-6 rounded-xl border border-surface-200 bg-white p-5 shadow-sm">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 class="font-semibold">ประวัติใบเสนอราคา</h3>
-          <p class="mt-1 text-sm text-surface-500">ค้นหาด้วยเลขที่เอกสารหรือชื่อลูกค้า</p>
-        </div>
-        <div class="relative w-full sm:w-80">
-          <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-surface-400" />
-          <InputText v-model="searchText" class="w-full pl-10" placeholder="ค้นหาเลขที่หรือชื่อลูกค้า" />
-        </div>
+      <div class="relative mb-4 w-full sm:w-80">
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-surface-400" />
+        <InputText v-model="searchText" class="w-full pl-10" placeholder="ค้นหาเลขที่หรือชื่อลูกค้า" />
       </div>
 
       <DataTable
@@ -63,9 +41,12 @@
         <Column field="createdAt" header="สร้างเมื่อ" sortable style="width: 12rem">
           <template #body="slotProps">{{ displayDateTime(slotProps.data.createdAt) }}</template>
         </Column>
-        <Column header="" style="width: 12rem">
+        <Column header="" style="width: 19rem">
           <template #body="slotProps">
-            <Button label="Generate PDF" icon="pi pi-file-pdf" size="small" outlined :loading="generatingNumber === slotProps.data.quotationNumber" :disabled="Boolean(generatingNumber)" @click.stop="regenerate(slotProps.data)" />
+            <div class="flex items-center gap-2">
+              <Button label="แก้ไข" icon="pi pi-pencil" size="small" severity="secondary" outlined @click.stop="copyAsNew(slotProps.data)" />
+              <Button label="Generate PDF" icon="pi pi-file-pdf" size="small" outlined :loading="generatingNumber === slotProps.data.quotationNumber" :disabled="Boolean(generatingNumber)" @click.stop="regenerate(slotProps.data)" />
+            </div>
           </template>
         </Column>
         <template #empty><div class="py-8 text-center text-surface-500">ไม่พบประวัติใบเสนอราคา</div></template>
@@ -96,14 +77,6 @@ export default {
       if (!keyword) return this.quotations
       return this.quotations.filter((item) => [item.quotationNumber, item.customerName, item.customerCode]
         .some((value) => String(value || '').toLocaleLowerCase('th-TH').includes(keyword)))
-    },
-    latestQuotationDate() {
-      if (!this.quotations.length) return '—'
-      const latest = this.quotations.reduce((current, item) => item.quotationDate > current ? item.quotationDate : current, '')
-      return this.displayDate(latest)
-    },
-    totalQuotedAmount() {
-      return this.quotations.reduce((sum, item) => sum + (Number(item.totalAmount) || 0), 0)
     }
   },
   mounted() { void this.loadQuotations() },
@@ -119,6 +92,9 @@ export default {
     },
     openQuotation(item) {
       void this.$router.push({ name: 'quotation-detail', params: { quotationNumber: item.quotationNumber } })
+    },
+    copyAsNew(item) {
+      void this.$router.push({ name: 'quotation-create', query: { copyFrom: item.quotationNumber } })
     },
     async regenerate(item) {
       if (this.generatingNumber) return

@@ -1,0 +1,72 @@
+mutation CreateGoodboochProduct(
+  $sku: String!
+  $productName: String!
+  $inventoryMethod: String!
+  $baseUnit: String!
+  $lowStockThreshold: Int!
+  $idealGlobeProductCode: String
+  $noteText: String
+) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may create Product Master records.") {
+  goodboochProduct_insert(data: {
+    sku: $sku
+    productName: $productName
+    inventoryMethod: $inventoryMethod
+    baseUnit: $baseUnit
+    lowStockThreshold: $lowStockThreshold
+    idealGlobeProductCode: $idealGlobeProductCode
+    noteText: $noteText
+    isActive: true
+    createdByUid_expr: "auth.uid"
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation UpdateGoodboochProduct(
+  $sku: String!
+  $productName: String!
+  $inventoryMethod: String!
+  $baseUnit: String!
+  $lowStockThreshold: Int!
+  $idealGlobeProductCode: String
+  $noteText: String
+  $isActive: Boolean!
+) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may update Product Master records.") {
+  goodboochProduct_update(key: { sku: $sku }, data: {
+    productName: $productName
+    inventoryMethod: $inventoryMethod
+    baseUnit: $baseUnit
+    lowStockThreshold: $lowStockThreshold
+    idealGlobeProductCode: $idealGlobeProductCode
+    noteText: $noteText
+    isActive: $isActive
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation RenameGoodboochProduct(
+  $oldSku: String!
+  $newSku: String!
+  $productName: String!
+  $inventoryMethod: String!
+  $baseUnit: String!
+  $lowStockThreshold: Int!
+  $idealGlobeProductCode: String
+  $noteText: String
+  $isActive: Boolean!
+) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may correct Product Master SKU values.") {
+  goodboochProduct_insert(data: {
+    sku: $newSku
+    productName: $productName
+    inventoryMethod: $inventoryMethod
+    baseUnit: $baseUnit
+    lowStockThreshold: $lowStockThreshold
+    idealGlobeProductCode: $idealGlobeProductCode
+    noteText: $noteText
+    isActive: $isActive
+    createdByUid_expr: "auth.uid"
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+  goodboochProduct_delete(key: { sku: $oldSku })
+}

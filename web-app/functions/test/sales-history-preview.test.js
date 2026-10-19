@@ -5,9 +5,9 @@ import { parseExpressCustomers } from '../src/customer-parser.js'
 import { parseExpressProducts } from '../src/product-parser.js'
 import { buildSalesHistoryPreview } from '../src/sales-history-preview.js'
 
-const salesFile = new URL('../../../private-data/express-export/raw/express_sales_history_2026-08-14.csv', import.meta.url)
-const productFile = new URL('../../../private-data/express-export/raw/express_products_2026-08-12.csv', import.meta.url)
-const customerFile = new URL('../../../private-data/express-export/raw/express_customers_2026-08-14.csv', import.meta.url)
+const salesFile = new URL('../../../private-data/express-export/fixtures/express_sales_history_2026-08-14.csv', import.meta.url)
+const productFile = new URL('../../../private-data/express-export/fixtures/express_products_2026-08-12.csv', import.meta.url)
+const customerFile = new URL('../../../private-data/express-export/fixtures/express_customers_2026-08-14.csv', import.meta.url)
 
 test('builds a Sales History preview and validates master references', () => {
   const products = parseExpressProducts(fs.readFileSync(productFile)).products

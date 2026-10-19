@@ -1,0 +1,13 @@
+mutation AdminImportProductUnitConversions(
+  $productConversions: [ProductUnitConversion_Data!]! @allow(
+    fields: "productCode sourceUnitKey sourceUnitText baseUnitText baseQuantityPerSourceUnit noteText createdByUid updatedAt"
+    maxCount: 2000
+  )
+  $universalConversions: [UniversalUnitConversion_Data!]! @allow(
+    fields: "sourceUnitKey sourceUnitText baseUnitText baseQuantityPerSourceUnit noteText createdByUid updatedAt"
+    maxCount: 100
+  )
+) @auth(level: NO_ACCESS) @transaction {
+  importedProductConversions: productUnitConversion_upsertMany(data: $productConversions)
+  importedUniversalConversions: universalUnitConversion_upsertMany(data: $universalConversions)
+}

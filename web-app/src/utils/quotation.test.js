@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextQuotationNumber, quotationMonthPrefix, quotationTotal, thaiBahtText } from './quotation.js'
+import { nextQuotationNumber, quotationGrandTotal, quotationMonthPrefix, quotationTotal, thaiBahtText } from './quotation.js'
 
 describe('quotation utilities', () => {
   it('creates a Gregorian year-month running number', () => {
@@ -10,6 +10,7 @@ describe('quotation utilities', () => {
 
   it('calculates VAT-inclusive totals without adding VAT again', () => {
     expect(quotationTotal([{ quantity: 2, unitPrice: 107 }, { quantity: 1, unitPrice: 53.5 }])).toBe(267.5)
+    expect(quotationGrandTotal([{ quantity: 2, unitPrice: 107 }], 80)).toBe(294)
   })
 
   it('writes Thai baht text', () => {

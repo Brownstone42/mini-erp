@@ -1,0 +1,31 @@
+query ListGoodboochProducts($limit: Int = 1000, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Goodbooch Product Master is readable only by authenticated ERP users.") {
+  goodboochProducts(limit: $limit, offset: $offset, orderBy: { sku: ASC }) {
+    sku
+    productName
+    inventoryMethod
+    baseUnit
+    lowStockThreshold
+    idealGlobeProductCode
+    noteText
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+query GetGoodboochProduct($sku: String!)
+  @auth(level: USER, insecureReason: "Goodbooch Product Master is readable only by authenticated ERP users.") {
+  goodboochProduct(key: { sku: $sku }) {
+    sku
+    productName
+    inventoryMethod
+    baseUnit
+    lowStockThreshold
+    idealGlobeProductCode
+    noteText
+    isActive
+    createdAt
+    updatedAt
+  }
+}

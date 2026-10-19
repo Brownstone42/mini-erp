@@ -1,0 +1,17 @@
+mutation SaveUnitMapping($sourceUnitKey: String!, $sourceUnitText: String!, $standardUnitText: String!, $noteText: String)
+  @auth(level: USER, insecureReason: "Authenticated ERP users can maintain shared Unit Mapping Master Data.") {
+  unitMapping_upsert(data: {
+    sourceUnitKey: $sourceUnitKey
+    sourceUnitText: $sourceUnitText
+    standardUnitText: $standardUnitText
+    noteText: $noteText
+    createdByUid_expr: "auth.uid"
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation DeleteUnitMapping($sourceUnitKey: String!)
+  @auth(level: USER, insecureReason: "Authenticated ERP users can remove shared Unit Mapping Master Data.") {
+  unitMapping_delete(key: { sourceUnitKey: $sourceUnitKey })
+}
+

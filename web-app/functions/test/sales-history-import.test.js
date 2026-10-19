@@ -6,9 +6,9 @@ import { parseExpressCustomers } from '../src/customer-parser.js'
 import { importSalesHistorySnapshot } from '../src/sales-history-import.js'
 import { parseExpressProducts } from '../src/product-parser.js'
 
-const salesFile = new URL('../../../private-data/express-export/raw/express_sales_history_2026-09-08(2).csv', import.meta.url)
-const productFile = new URL('../../../private-data/express-export/raw/express_products_2026-09-08.csv', import.meta.url)
-const customerFile = new URL('../../../private-data/express-export/raw/express_customers_2026-09-08.csv', import.meta.url)
+const salesFile = new URL('../../../private-data/express-export/fixtures/express_sales_history_2026-09-08(2).csv', import.meta.url)
+const productFile = new URL('../../../private-data/express-export/fixtures/express_products_2026-09-08.csv', import.meta.url)
+const customerFile = new URL('../../../private-data/express-export/fixtures/express_customers_2026-09-08.csv', import.meta.url)
 
 test('imports Sales History larger than the Data Connect row limit in batches', async () => {
   const fileBuffer = fs.readFileSync(salesFile)

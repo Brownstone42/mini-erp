@@ -259,6 +259,57 @@ type StockImportRun @table(name: "stock_import_runs") {
   importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
 }
 
+type PendingOrderSnapshot @table(name: "pending_order_snapshots", key: "id") {
+  id: UUID! @default(expr: "uuidV4()")
+  sourceFileName: String! @col(name: "source_file_name")
+  sourceFileHash: String! @col(name: "source_file_hash") @unique
+  reportDate: Date! @col(name: "report_date")
+  periodStart: Date! @col(name: "period_start")
+  periodEnd: Date! @col(name: "period_end")
+  warehouseFrom: String! @col(name: "warehouse_from")
+  warehouseTo: String! @col(name: "warehouse_to")
+  customerFrom: String @col(name: "customer_from")
+  customerTo: String @col(name: "customer_to")
+  lineCount: Int! @col(name: "line_count")
+  productCount: Int! @col(name: "product_count")
+  unitMismatchCount: Int! @col(name: "unit_mismatch_count")
+  importedByUid: String! @col(name: "imported_by_uid")
+  importedAt: Timestamp! @col(name: "imported_at") @default(expr: "request.time")
+}
+
+type PendingOrderLine @table(name: "pending_order_lines", key: "sourceKey") {
+  sourceKey: String! @col(name: "source_key")
+  snapshotId: UUID! @col(name: "snapshot_id")
+  snapshot: PendingOrderSnapshot! @ref(fields: "snapshotId")
+  sourceRowNumber: Int! @col(name: "source_row_number")
+  productCode: String! @col(name: "product_code")
+  sourceProductName: String! @col(name: "source_product_name")
+  warehouseCode: String! @col(name: "warehouse_code")
+  deliveryDate: Date! @col(name: "delivery_date")
+  documentNumber: String! @col(name: "document_number")
+  orderDate: Date! @col(name: "order_date")
+  customerName: String! @col(name: "customer_name")
+  orderedQuantity: Float! @col(name: "ordered_quantity", dataType: "numeric(18,4)")
+  sourceUnitText: String! @col(name: "source_unit_text")
+  pendingQuantity: Float! @col(name: "pending_quantity", dataType: "numeric(18,4)")
+  amount: Float! @col(name: "amount", dataType: "numeric(18,2)")
+}
+
+type PendingOrderProductSummary @table(name: "pending_order_product_summaries", key: "sourceKey") {
+  sourceKey: String! @col(name: "source_key")
+  snapshotId: UUID! @col(name: "snapshot_id")
+  snapshot: PendingOrderSnapshot! @ref(fields: "snapshotId")
+  sourceRowNumber: Int! @col(name: "source_row_number")
+  productCode: String! @col(name: "product_code")
+  sourceProductName: String! @col(name: "source_product_name")
+  orderedQuantity: Float! @col(name: "ordered_quantity", dataType: "numeric(18,4)")
+  pendingQuantity: Float! @col(name: "pending_quantity", dataType: "numeric(18,4)")
+  amount: Float! @col(name: "amount", dataType: "numeric(18,2)")
+  reportedOnHandQuantity: Float @col(name: "reported_on_hand_quantity", dataType: "numeric(18,4)")
+  reportedOnHandUnitText: String @col(name: "reported_on_hand_unit_text")
+  reportedPurchaseQuantity: Float @col(name: "reported_purchase_quantity", dataType: "numeric(18,4)")
+}
+
 type ProductGroup @table(name: "product_groups") {
   id: UUID! @default(expr: "uuidV4()")
   groupName: String! @col(name: "group_name") @unique
@@ -276,6 +327,40 @@ type ProductGroupItem @table(name: "product_group_items", key: ["groupId", "prod
   addedAt: Timestamp! @col(name: "added_at") @default(expr: "request.time")
 }
 
+type UnitMapping @table(name: "unit_mappings", key: "sourceUnitKey") {
+  sourceUnitKey: String! @col(name: "source_unit_key")
+  sourceUnitText: String! @col(name: "source_unit_text")
+  standardUnitText: String! @col(name: "standard_unit_text")
+  noteText: String @col(name: "note_text")
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type ProductUnitConversion @table(name: "product_unit_conversions", key: ["productCode", "sourceUnitKey"]) {
+  productCode: String! @col(name: "product_code")
+  product: Product! @ref(fields: "productCode")
+  sourceUnitKey: String! @col(name: "source_unit_key")
+  sourceUnitText: String! @col(name: "source_unit_text")
+  baseUnitText: String! @col(name: "base_unit_text")
+  baseQuantityPerSourceUnit: Float! @col(name: "base_quantity_per_source_unit", dataType: "numeric(18,6)")
+  noteText: String @col(name: "note_text")
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type UniversalUnitConversion @table(name: "universal_unit_conversions", key: "sourceUnitKey") {
+  sourceUnitKey: String! @col(name: "source_unit_key")
+  sourceUnitText: String! @col(name: "source_unit_text")
+  baseUnitText: String! @col(name: "base_unit_text")
+  baseQuantityPerSourceUnit: Float! @col(name: "base_quantity_per_source_unit", dataType: "numeric(18,6)")
+  noteText: String @col(name: "note_text")
+  createdByUid: String! @col(name: "created_by_uid")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
 type Quotation @table(name: "quotations", key: "quotationNumber") {
   quotationNumber: String! @col(name: "quotation_number")
   requestId: UUID! @col(name: "request_id") @unique
@@ -289,6 +374,8 @@ type Quotation @table(name: "quotations", key: "quotationNumber") {
   signatoryId: UUID @col(name: "signatory_id")
   signatory: Signatory @ref(fields: "signatoryId")
   remarkText: String! @col(name: "remark_text")
+  includesShipping: Boolean! @col(name: "includes_shipping") @default(value: false)
+  shippingAmount: Float! @col(name: "shipping_amount", dataType: "numeric(18,2)") @default(value: 0)
   totalAmount: Float! @col(name: "total_amount", dataType: "numeric(18,2)")
   createdByUid: String! @col(name: "created_by_uid")
   createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")

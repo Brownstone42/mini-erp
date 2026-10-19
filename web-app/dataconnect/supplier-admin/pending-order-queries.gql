@@ -1,0 +1,5 @@
+query AdminGetPendingOrderSnapshotByHash($sourceFileHash: String!) @auth(level: NO_ACCESS) {
+  pendingOrderSnapshots(where: { sourceFileHash: { eq: $sourceFileHash } }, limit: 1) {
+    id importedAt lineCount
+  }
+}

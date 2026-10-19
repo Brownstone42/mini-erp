@@ -4,8 +4,8 @@ import test from 'node:test'
 import { importProductSnapshot } from '../src/product-import.js'
 import { parseExpressSuppliers } from '../src/supplier-parser.js'
 
-const productFile = new URL('../../../private-data/express-export/raw/express_products_2026-08-12.csv', import.meta.url)
-const supplierFile = new URL('../../../private-data/express-export/raw/express_suppliers_2026-08-04.csv', import.meta.url)
+const productFile = new URL('../../../private-data/express-export/fixtures/express_products_2026-08-12.csv', import.meta.url)
+const supplierFile = new URL('../../../private-data/express-export/fixtures/express_suppliers_2026-08-04.csv', import.meta.url)
 
 test('imports Product categories and products in one transaction', async () => {
   const fileBuffer = fs.readFileSync(productFile)

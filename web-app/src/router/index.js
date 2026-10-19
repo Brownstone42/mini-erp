@@ -18,9 +18,13 @@ const ProductListView = () => import('../views/master-data/products/ProductListV
 const ProductDetailView = () => import('../views/master-data/products/ProductDetailView.vue')
 const ProductCategoryListView = () => import('../views/master-data/product-categories/ProductCategoryListView.vue')
 const ProductCategoryDetailView = () => import('../views/master-data/product-categories/ProductCategoryDetailView.vue')
+const UnitMappingListView = () => import('../views/master-data/unit-mappings/UnitMappingListView.vue')
 const SalesHistoryListView = () => import('../views/sales/SalesHistoryListView.vue')
 const PurchaseHistoryListView = () => import('../views/purchases/PurchaseHistoryListView.vue')
 const StockListView = () => import('../views/stock/StockListView.vue')
+const PendingOrdersView = () => import('../views/pending-orders/PendingOrdersView.vue')
+const PurchasePlanningView = () => import('../views/analysis/PurchasePlanningView.vue')
+const PurchasePlanningDetailView = () => import('../views/analysis/PurchasePlanningDetailView.vue')
 const SalesReportView = () => import('../views/reports/SalesReportView.vue')
 const CustomerSalesReportView = () => import('../views/reports/CustomerSalesReportView.vue')
 const ProductPurchaseCostReportView = () => import('../views/reports/ProductPurchaseCostReportView.vue')
@@ -31,6 +35,10 @@ const SignatoryListView = () => import('../views/settings/SignatoryListView.vue'
 const QuotationListView = () => import('../views/sales/QuotationListView.vue')
 const QuotationCreateView = () => import('../views/sales/QuotationCreateView.vue')
 const CompanyWorkspaceView = () => import('../views/CompanyWorkspaceView.vue')
+const GoodboochProductListView = () => import('../views/goodbooch/products/GoodboochProductListView.vue')
+const GoodboochProductFormView = () => import('../views/goodbooch/products/GoodboochProductFormView.vue')
+const GoodboochStockView = () => import('../views/goodbooch/stock/GoodboochStockView.vue')
+const GoodboochSalesSkuMappingView = () => import('../views/goodbooch/settings/GoodboochSalesSkuMappingView.vue')
 
 const routes = [
   {
@@ -51,7 +59,39 @@ const routes = [
       {
         path: 'company',
         name: 'company-workspace',
-        component: CompanyWorkspaceView
+        component: CompanyWorkspaceView,
+        meta: { company: 'goodbooch' }
+      },
+      {
+        path: 'goodbooch/products',
+        name: 'goodbooch-product-list',
+        component: GoodboochProductListView,
+        meta: { company: 'goodbooch', keepAlive: true, scrollKey: 'goodbooch-product-list' }
+      },
+      {
+        path: 'goodbooch/products/new',
+        name: 'goodbooch-product-create',
+        component: GoodboochProductFormView,
+        meta: { company: 'goodbooch', returnScrollKey: 'goodbooch-product-list' }
+      },
+      {
+        path: 'goodbooch/products/:sku',
+        name: 'goodbooch-product-edit',
+        component: GoodboochProductFormView,
+        props: true,
+        meta: { company: 'goodbooch', returnScrollKey: 'goodbooch-product-list' }
+      },
+      {
+        path: 'goodbooch/stock',
+        name: 'goodbooch-stock',
+        component: GoodboochStockView,
+        meta: { company: 'goodbooch' }
+      },
+      {
+        path: 'goodbooch/settings/shopee-sku-mappings',
+        name: 'goodbooch-shopee-sku-mappings',
+        component: GoodboochSalesSkuMappingView,
+        meta: { company: 'goodbooch' }
       },
       {
         path: 'master-data/suppliers',
@@ -124,6 +164,11 @@ const routes = [
         meta: { returnScrollKey: 'product-category-list' }
       },
       {
+        path: 'master-data/unit-mappings',
+        name: 'unit-mapping-list',
+        component: UnitMappingListView
+      },
+      {
         path: 'sales/quotations',
         name: 'quotation-list',
         component: QuotationListView
@@ -160,6 +205,24 @@ const routes = [
         path: 'stock',
         name: 'stock-list',
         component: StockListView
+      },
+      {
+        path: 'pending-orders',
+        name: 'pending-orders',
+        component: PendingOrdersView
+      },
+      {
+        path: 'analysis/purchase-planning',
+        name: 'purchase-planning',
+        component: PurchasePlanningView,
+        meta: { keepAlive: true, scrollKey: 'purchase-planning' }
+      },
+      {
+        path: 'analysis/purchase-planning/:productCode',
+        name: 'purchase-planning-detail',
+        component: PurchasePlanningDetailView,
+        props: true,
+        meta: { returnScrollKey: 'purchase-planning' }
       },
       {
         path: 'reports/sales',
@@ -245,8 +308,9 @@ router.beforeEach(async (to, from) => {
   if (to.name === 'login' && user) return { name: 'dashboard' }
   if (user && !to.meta.public) {
     const companyStore = useCompanyStore(pinia)
-    if (!companyStore.isIdealGlobe && to.name !== 'company-workspace') return { name: 'company-workspace' }
-    if (companyStore.isIdealGlobe && to.name === 'company-workspace') return { name: 'dashboard' }
+    const routeCompany = to.meta.company || 'idealglobe'
+    if (!companyStore.isIdealGlobe && routeCompany !== 'goodbooch') return { name: 'company-workspace' }
+    if (companyStore.isIdealGlobe && routeCompany === 'goodbooch') return { name: 'dashboard' }
   }
   return true
 })

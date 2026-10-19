@@ -1,0 +1,16 @@
+query ListGoodboochSalesSkuMappings($limit: Int = 1000, $offset: Int = 0)
+  @auth(level: USER, insecureReason: "Goodbooch sales SKU mappings are readable only by authenticated ERP users.") {
+  goodboochSalesSkuMappings(limit: $limit, offset: $offset, orderBy: { updatedAt: DESC }) {
+    id
+    shopCode
+    shopeeSku
+    listingName
+    variantName
+    productSku
+    stockEffect
+    quantityPerOrder
+    isActive
+    createdAt
+    updatedAt
+  }
+}

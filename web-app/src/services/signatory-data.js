@@ -1,6 +1,7 @@
 import { executeMutation, executeQuery, getDataConnect, mutationRef, queryRef } from 'firebase/data-connect'
 import { deleteObject, getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage'
-import { firebaseApp } from './firebase.js'
+import { httpsCallable } from 'firebase/functions'
+import { firebaseApp, firebaseFunctions } from './firebase.js'
 
 const dataConnect = getDataConnect(firebaseApp, { connector: 'supplier-web', service: 'mini-erp-service', location: 'asia-southeast1' })
 const storage = getStorage(firebaseApp)
@@ -19,6 +20,19 @@ export async function fetchSignatories() {
     signatureUrl: await imageUrl(item.signaturePath),
     stampUrl: await imageUrl(item.stampPath)
   })))
+}
+
+export async function fetchSignatoryPdfImages(signatory) {
+  const callable = httpsCallable(firebaseFunctions, 'loadSignatoryPdfImages', { timeout: 60000 })
+  const result = await callable({
+    signatoryId: signatory?.id,
+    signaturePath: signatory?.signaturePath || null,
+    stampPath: signatory?.stampPath || null
+  })
+  return {
+    signatureDataUrl: String(result.data?.signatureDataUrl || ''),
+    stampDataUrl: String(result.data?.stampDataUrl || '')
+  }
 }
 
 function extension(file) {

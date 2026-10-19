@@ -1,0 +1,19 @@
+query ListPendingOrderSnapshots($limit: Int = 100)
+  @auth(level: USER, insecureReason: "Pending Orders are readable by authenticated ERP users.") {
+  pendingOrderSnapshots(limit: $limit, orderBy: { importedAt: DESC }) {
+    id sourceFileName reportDate periodStart periodEnd warehouseFrom warehouseTo
+    customerFrom customerTo lineCount productCount unitMismatchCount importedAt
+  }
+}
+
+query ListPendingOrderSnapshotDetails($snapshotId: UUID!, $limit: Int = 5000)
+  @auth(level: USER, insecureReason: "Pending Orders are readable by authenticated ERP users.") {
+  pendingOrderLines(where: { snapshotId: { eq: $snapshotId } }, limit: $limit, orderBy: { sourceRowNumber: ASC }) {
+    sourceKey snapshotId sourceRowNumber productCode sourceProductName warehouseCode deliveryDate
+    documentNumber orderDate customerName orderedQuantity sourceUnitText pendingQuantity amount
+  }
+  pendingOrderProductSummaries(where: { snapshotId: { eq: $snapshotId } }, limit: $limit, orderBy: { sourceRowNumber: ASC }) {
+    sourceKey snapshotId sourceRowNumber productCode sourceProductName orderedQuantity pendingQuantity amount
+    reportedOnHandQuantity reportedOnHandUnitText reportedPurchaseQuantity
+  }
+}

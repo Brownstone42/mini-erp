@@ -1,4 +1,6 @@
 import { initializeApp } from 'firebase-admin/app'
+import { getStorage } from 'firebase-admin/storage'
+import { createHash } from 'node:crypto'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import { defineSecret } from 'firebase-functions/params'
 import { setGlobalOptions } from 'firebase-functions/v2'
@@ -19,6 +21,8 @@ import { assertPurchaseHistoryImportAdmin, importPurchaseHistorySnapshot } from 
 import { parseExpressStock } from './stock-parser.js'
 import { buildStockPreview } from './stock-preview.js'
 import { assertStockImportAdmin, importStockSnapshot } from './stock-import.js'
+import { buildPendingOrdersPreview } from './pending-orders-preview.js'
+import { assertPendingOrdersImportAdmin, importPendingOrdersSnapshot } from './pending-orders-import.js'
 import { isValidBackendImportKey } from './backend-import-auth.js'
 
 initializeApp()
@@ -57,6 +61,66 @@ export const health = onRequest({ cors: false }, (request, response) => {
     service: 'mini-erp-functions',
     status: 'ok'
   })
+})
+
+const SIGNATORY_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
+const SIGNATORY_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+function assertSignatoryImagePath(signatoryId, kind, path) {
+  if (!path) return null
+  const normalizedId = String(signatoryId || '').trim()
+  const normalizedPath = String(path || '').trim()
+  const pathMatch = normalizedPath.match(new RegExp(`^settings/signatories/([0-9a-f-]+)/${kind}\\.(png|jpe?g|webp)$`, 'i'))
+  const comparableId = normalizedId.replaceAll('-', '').toLowerCase()
+  const comparablePathId = String(pathMatch?.[1] || '').replaceAll('-', '').toLowerCase()
+  if (!/^[0-9a-f]{32}$/.test(comparableId) || comparablePathId !== comparableId) {
+    throw new HttpsError('invalid-argument', 'เส้นทางรูปกรรมการลงนามไม่ถูกต้อง')
+  }
+  return normalizedPath
+}
+
+async function storageImageDataUrl(path) {
+  if (!path) return ''
+  const file = getStorage().bucket().file(path)
+  const [metadata] = await file.getMetadata()
+  const extension = path.split('.').pop()?.toLowerCase()
+  const inferredContentType = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }[extension]
+  const contentType = String(metadata.contentType || inferredContentType || '').toLowerCase()
+  const size = Number(metadata.size || 0)
+  if (!SIGNATORY_IMAGE_TYPES.has(contentType) || size <= 0 || size > SIGNATORY_IMAGE_MAX_BYTES) {
+    throw new HttpsError('failed-precondition', 'ไฟล์รูปกรรมการลงนามมีชนิดหรือขนาดไม่รองรับ')
+  }
+  const [buffer] = await file.download()
+  return `data:${contentType};base64,${buffer.toString('base64')}`
+}
+
+export const loadSignatoryPdfImages = onCall({ cors: true, maxInstances: 5 }, async (request) => {
+  if (!request.auth || request.auth.token.firebase?.sign_in_provider === 'anonymous') {
+    throw new HttpsError('unauthenticated', 'กรุณาเข้าสู่ระบบก่อนโหลดรูปกรรมการลงนาม')
+  }
+
+  const { signatoryId, signaturePath, stampPath } = request.data || {}
+  try {
+    const safeSignaturePath = assertSignatoryImagePath(signatoryId, 'signature', signaturePath)
+    const safeStampPath = assertSignatoryImagePath(signatoryId, 'stamp', stampPath)
+    if (!safeSignaturePath) throw new HttpsError('failed-precondition', 'กรรมการคนนี้ยังไม่มีรูปลายเซ็น')
+    const [signatureDataUrl, stampDataUrl] = await Promise.all([
+      storageImageDataUrl(safeSignaturePath),
+      storageImageDataUrl(safeStampPath)
+    ])
+    return { signatureDataUrl, stampDataUrl }
+  } catch (error) {
+    console.error('Cannot load signatory images for PDF', {
+      signatoryId,
+      signaturePath,
+      stampPath,
+      code: error?.code || null,
+      message: error?.message || String(error),
+      stack: error?.stack || null
+    })
+    if (error instanceof HttpsError) throw error
+    throw new HttpsError('internal', 'ไม่สามารถโหลดรูปลายเซ็นหรือตราประทับได้')
+  }
 })
 
 export const previewSupplierImport = onCall({ cors: true }, async (request) => {
@@ -342,6 +406,158 @@ function compactPurchaseHistoryPreview(preview) {
   }
 }
 
+const BACKEND_IMPORT_TYPES = new Set(['supplier', 'customer', 'product', 'sales', 'stock', 'pending'])
+
+export const backendImportExpressData = onRequest({
+  cors: false,
+  timeoutSeconds: 300,
+  memory: '1GiB',
+  maxInstances: 1,
+  secrets: [BACKEND_IMPORT_KEY]
+}, async (request, response) => {
+  if (request.method !== 'POST') {
+    response.set('Allow', 'POST').status(405).json({ ok: false, error: 'method-not-allowed' })
+    return
+  }
+  if (!hasValidBackendImportKey(request)) {
+    response.status(401).json({ ok: false, error: 'unauthorized' })
+    return
+  }
+
+  const { dataType, fileName, fileBase64, commit = false } = request.body || {}
+  if (!BACKEND_IMPORT_TYPES.has(dataType) || typeof fileName !== 'string' || !fileName.toLowerCase().endsWith('.csv') ||
+      typeof fileBase64 !== 'string' || fileBase64.length === 0 || fileBase64.length > 3_000_000) {
+    response.status(400).json({ ok: false, error: 'invalid-file-or-type' })
+    return
+  }
+
+  try {
+    const options = { fileName: fileName.trim(), fileBuffer: Buffer.from(fileBase64, 'base64') }
+    const { preview, importOptions, importer } = await prepareBackendImport(dataType, options)
+    if (!preview.isValid) {
+      response.status(422).json({ ok: false, imported: false, preview: compactBackendPreview(preview) })
+      return
+    }
+    if (commit !== true) {
+      response.json({ ok: true, imported: false, preview: compactBackendPreview(preview) })
+      return
+    }
+
+    const result = await importer({
+      dataConnect,
+      ...options,
+      ...importOptions,
+      previewId: preview.previewId,
+      importedByUid: 'backend-automation'
+    })
+    response.json({
+      ok: true,
+      imported: !result.alreadyImported,
+      alreadyImported: result.alreadyImported,
+      preview: compactBackendPreview(preview),
+      result
+    })
+  } catch (error) {
+    console.error(`Backend ${request.body?.dataType || 'unknown'} import failed`, error)
+    response.status(500).json({ ok: false, error: 'internal-error' })
+  }
+})
+
+async function prepareBackendImport(dataType, options) {
+  if (dataType === 'supplier') {
+    const result = await adminListSuppliers({ limit: 2000, offset: 0 })
+    const importOptions = {
+      existingSuppliers: result.data?.suppliers || [],
+      findImportByHash: ({ sourceFileHash }) => dataConnect.executeQuery('AdminGetImportRunByHash', { sourceFileHash })
+    }
+    return { preview: buildSupplierPreview({ ...options, ...importOptions }), importOptions, importer: importSupplierSnapshot }
+  }
+  if (dataType === 'customer') {
+    const result = await dataConnect.executeQuery('AdminListCustomers', { limit: 1100, offset: 0 })
+    const importOptions = {
+      existingCustomers: result.data?.customers || [],
+      findImportByHash: (sourceFileHash) => dataConnect.executeQuery('AdminGetCustomerImportRunByHash', { sourceFileHash })
+    }
+    return { preview: buildCustomerPreview({ ...options, ...importOptions }), importOptions, importer: importCustomerSnapshot }
+  }
+  if (dataType === 'product') {
+    const [productResult, categoryResult, supplierResult] = await Promise.all([
+      dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 }),
+      dataConnect.executeQuery('AdminListProductCategories', { limit: 100, offset: 0 }),
+      adminListSuppliers({ limit: 2000, offset: 0 })
+    ])
+    const importOptions = {
+      existingProducts: productResult.data?.products || [],
+      existingCategories: categoryResult.data?.productCategories || [],
+      supplierCodes: (supplierResult.data?.suppliers || []).map((item) => item.supplierCode),
+      findImportByHash: (sourceFileHash) => dataConnect.executeQuery('AdminGetProductImportRunByHash', { sourceFileHash })
+    }
+    return { preview: buildProductPreview({ ...options, ...importOptions }), importOptions, importer: importProductSnapshot }
+  }
+  if (dataType === 'sales') {
+    const parsed = parseExpressSalesHistory(options.fileBuffer)
+    const [existingRows, productResult, customerResult] = await Promise.all([
+      listAllSalesHistoryForPeriod(parsed.periodStart, parsed.periodEnd),
+      dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 }),
+      dataConnect.executeQuery('AdminListCustomers', { limit: 1100, offset: 0 })
+    ])
+    const importOptions = {
+      existingRows,
+      products: productResult.data?.products || [],
+      customerCodes: (customerResult.data?.customers || []).map((item) => item.customerCode),
+      findImportByHash: (sourceFileHash) => dataConnect.executeQuery('AdminGetSalesHistoryImportRunByHash', { sourceFileHash })
+    }
+    return { preview: buildSalesHistoryPreview({ ...options, ...importOptions }), importOptions, importer: importSalesHistorySnapshot }
+  }
+  if (dataType === 'stock') {
+    const parsed = parseExpressStock(options.fileBuffer)
+    const [existingResult, productResult] = await Promise.all([
+      dataConnect.executeQuery('AdminListStockSnapshot', {
+        snapshotDate: parsed.snapshotDate,
+        warehouseFrom: parsed.warehouseFrom,
+        warehouseTo: parsed.warehouseTo,
+        limit: 5000,
+        offset: 0
+      }),
+      dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 })
+    ])
+    const importOptions = {
+      existingRows: existingResult.data?.stockSnapshots || [],
+      existingLots: existingResult.data?.stockSnapshotLots || [],
+      products: productResult.data?.products || [],
+      findImportByHash: (sourceFileHash) => dataConnect.executeQuery('AdminGetStockImportRunByHash', { sourceFileHash })
+    }
+    return { preview: buildStockPreview({ ...options, ...importOptions }), importOptions, importer: importStockSnapshot }
+  }
+
+  const sourceFileHash = createHash('sha256').update(options.fileBuffer).digest('hex')
+  const [productResult, duplicateResult] = await Promise.all([
+    dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 }),
+    dataConnect.executeQuery('AdminGetPendingOrderSnapshotByHash', { sourceFileHash })
+  ])
+  const importOptions = {
+    products: productResult.data?.products || [],
+    existingSnapshot: duplicateResult.data?.pendingOrderSnapshots?.[0],
+    findImportByHash: (hash) => dataConnect.executeQuery('AdminGetPendingOrderSnapshotByHash', { sourceFileHash: hash })
+  }
+  return { preview: buildPendingOrdersPreview({ ...options, ...importOptions }), importOptions, importer: importPendingOrdersSnapshot }
+}
+
+function compactBackendPreview(preview) {
+  return {
+    previewId: preview.previewId,
+    fileName: preview.fileName,
+    periodStart: preview.periodStart,
+    periodEnd: preview.periodEnd,
+    snapshotDate: preview.snapshotDate,
+    reportDate: preview.reportDate,
+    isValid: preview.isValid,
+    summary: preview.summary,
+    errors: (preview.errors || []).slice(0, 100),
+    warnings: (preview.warnings || []).slice(0, 100)
+  }
+}
+
 export const previewStockImport = onCall({ cors: true, timeoutSeconds: 120 }, async (request) => {
   if (!request.auth || request.auth.token.firebase?.sign_in_provider === 'anonymous') throw new HttpsError('unauthenticated', 'กรุณาเข้าสู่ระบบก่อนตรวจสอบไฟล์')
   const { fileName, fileBase64 } = request.data || {}
@@ -397,6 +613,48 @@ export const confirmStockImport = onCall({ cors: true, timeoutSeconds: 300, memo
     if (error instanceof HttpsError) throw error
     console.error('Stock import failed', error)
     throw new HttpsError('internal', 'ไม่สามารถ Import Stock ได้ ระบบไม่ได้เปลี่ยนแปลงข้อมูล')
+  }
+})
+
+export const previewPendingOrdersImport = onCall({ cors: true, timeoutSeconds: 120 }, async (request) => {
+  if (!request.auth || request.auth.token.firebase?.sign_in_provider === 'anonymous') throw new HttpsError('unauthenticated', 'กรุณาเข้าสู่ระบบก่อนตรวจสอบไฟล์')
+  const { fileName, fileBase64 } = request.data || {}
+  if (typeof fileName !== 'string' || !fileName.toLowerCase().endsWith('.csv') || typeof fileBase64 !== 'string' || fileBase64.length === 0 || fileBase64.length > 3_000_000) {
+    throw new HttpsError('invalid-argument', 'ข้อมูลไฟล์ Pending Orders ไม่ถูกต้องหรือไฟล์มีขนาดใหญ่เกิน 2 MB')
+  }
+  try {
+    const fileBuffer = Buffer.from(fileBase64, 'base64')
+    const sourceFileHash = createHash('sha256').update(fileBuffer).digest('hex')
+    const [productResult, duplicateResult] = await Promise.all([
+      dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 }),
+      dataConnect.executeQuery('AdminGetPendingOrderSnapshotByHash', { sourceFileHash })
+    ])
+    return buildPendingOrdersPreview({ fileName: fileName.trim(), fileBuffer,
+      products: productResult.data?.products || [], existingSnapshot: duplicateResult.data?.pendingOrderSnapshots?.[0] })
+  } catch (error) {
+    if (error instanceof HttpsError) throw error
+    console.error('Pending Orders preview failed', error)
+    throw new HttpsError('internal', 'ไม่สามารถตรวจสอบไฟล์ Pending Orders ได้')
+  }
+})
+
+export const confirmPendingOrdersImport = onCall({ cors: true, timeoutSeconds: 300 }, async (request) => {
+  assertPendingOrdersImportAdmin(request.auth)
+  const { fileName, fileBase64, previewId } = request.data || {}
+  if (typeof fileName !== 'string' || !fileName.toLowerCase().endsWith('.csv') || typeof fileBase64 !== 'string' || fileBase64.length === 0 || fileBase64.length > 3_000_000) {
+    throw new HttpsError('invalid-argument', 'ข้อมูลไฟล์ Pending Orders ไม่ถูกต้องหรือไฟล์มีขนาดใหญ่เกิน 2 MB')
+  }
+  if (typeof previewId !== 'string' || previewId.length !== 64) throw new HttpsError('invalid-argument', 'ไม่พบรหัส Preview')
+  try {
+    const fileBuffer = Buffer.from(fileBase64, 'base64')
+    const productResult = await dataConnect.executeQuery('AdminListProducts', { limit: 2000, offset: 0 })
+    return await importPendingOrdersSnapshot({ dataConnect, fileName: fileName.trim(), fileBuffer, previewId,
+      importedByUid: request.auth.uid, products: productResult.data?.products || [],
+      findImportByHash: (sourceFileHash) => dataConnect.executeQuery('AdminGetPendingOrderSnapshotByHash', { sourceFileHash }) })
+  } catch (error) {
+    if (error instanceof HttpsError) throw error
+    console.error('Pending Orders import failed', error)
+    throw new HttpsError('internal', 'ไม่สามารถ Import Pending Orders ได้ ระบบไม่ได้เปลี่ยนแปลงข้อมูล')
   }
 })
 
@@ -495,5 +753,63 @@ export const confirmSupplierImport = onCall({ cors: true, timeoutSeconds: 120 },
     if (error instanceof HttpsError) throw error
     console.error('Supplier import failed', error)
     throw new HttpsError('internal', 'ไม่สามารถ Import Supplier ได้ ระบบไม่ได้เปลี่ยนแปลงข้อมูล')
+  }
+})
+
+export const backendImportUnitConversions = onRequest({
+  cors: false,
+  timeoutSeconds: 120,
+  maxInstances: 1,
+  secrets: [BACKEND_IMPORT_KEY]
+}, async (request, response) => {
+  if (request.method !== 'POST') {
+    response.set('Allow', 'POST').status(405).json({ ok: false, error: 'method-not-allowed' })
+    return
+  }
+  if (!hasValidBackendImportKey(request)) {
+    response.status(401).json({ ok: false, error: 'unauthorized' })
+    return
+  }
+
+  const productConversions = Array.isArray(request.body?.productConversions) ? request.body.productConversions : []
+  const universalConversions = Array.isArray(request.body?.universalConversions) ? request.body.universalConversions : []
+  const validProductRows = productConversions.every((item) =>
+    typeof item.productCode === 'string' && item.productCode.trim() &&
+    typeof item.sourceUnitKey === 'string' && item.sourceUnitKey.trim() &&
+    typeof item.sourceUnitText === 'string' && item.sourceUnitText.trim() &&
+    typeof item.baseUnitText === 'string' && item.baseUnitText.trim() &&
+    Number.isFinite(Number(item.baseQuantityPerSourceUnit)) && Number(item.baseQuantityPerSourceUnit) > 0
+  )
+  const validUniversalRows = universalConversions.every((item) =>
+    typeof item.sourceUnitKey === 'string' && item.sourceUnitKey.trim() &&
+    typeof item.sourceUnitText === 'string' && item.sourceUnitText.trim() &&
+    typeof item.baseUnitText === 'string' && item.baseUnitText.trim() &&
+    Number.isFinite(Number(item.baseQuantityPerSourceUnit)) && Number(item.baseQuantityPerSourceUnit) > 0
+  )
+  if (!productConversions.length || productConversions.length > 2000 || universalConversions.length > 100 || !validProductRows || !validUniversalRows) {
+    response.status(400).json({ ok: false, error: 'invalid-conversions' })
+    return
+  }
+
+  try {
+    const now = new Date().toISOString()
+    const normalize = (item) => ({
+      ...item,
+      createdByUid: 'backend-automation',
+      updatedAt: now
+    })
+    await dataConnect.executeMutation('AdminImportProductUnitConversions', {
+      productConversions: productConversions.map(normalize),
+      universalConversions: universalConversions.map(normalize)
+    })
+    const stored = await dataConnect.executeQuery('AdminListProductUnitConversions', { limit: 2000, offset: 0 })
+    response.json({
+      ok: true,
+      productConversionCount: stored.data?.productUnitConversions?.length || 0,
+      universalConversionCount: stored.data?.universalUnitConversions?.length || 0
+    })
+  } catch (error) {
+    console.error('Backend Unit Conversion import failed', error)
+    response.status(500).json({ ok: false, error: 'internal-error' })
   }
 })

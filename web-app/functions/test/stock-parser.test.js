@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import test from 'node:test'
 import { parseExpressStock } from '../src/stock-parser.js'
 
-const sourceFile = new URL('../../../private-data/express-export/raw/express_stock_2026-09-07.csv', import.meta.url)
+const sourceFile = new URL('../../../private-data/express-export/fixtures/express_stock_2026-09-07.csv', import.meta.url)
 
 test('parses the real Express stock snapshot and reconciles its control totals', () => {
   const result = parseExpressStock(fs.readFileSync(sourceFile))

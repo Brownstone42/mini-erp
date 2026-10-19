@@ -49,3 +49,7 @@ export function nextQuotationNumber(prefix, latestNumber) {
 export function quotationTotal(lines) {
   return lines.reduce((total, line) => total + (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0), 0)
 }
+
+export function quotationGrandTotal(lines, shippingAmount = 0) {
+  return quotationTotal(lines) + Math.max(0, Number(shippingAmount) || 0)
+}

@@ -1,0 +1,11 @@
+specVersion: "v1"
+serviceId: "goodbooch-erp-service"
+location: "asia-southeast1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "goodboocherp"
+      cloudSql:
+        instanceId: "mini-erp-postgres"
+connectorDirs: ["./goodbooch-web"]

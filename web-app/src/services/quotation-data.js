@@ -67,6 +67,8 @@ export async function createQuotation(quotation) {
         phoneText: quotation.phoneText?.trim() || null,
         signatoryId: quotation.signatoryId || null,
         remarkText: quotation.remarkText.trim(),
+        includesShipping: Boolean(quotation.includesShipping),
+        shippingAmount: Number((Number(quotation.shippingAmount) || 0).toFixed(2)),
         totalAmount: Number(quotation.totalAmount.toFixed(2)),
         lines
       }))

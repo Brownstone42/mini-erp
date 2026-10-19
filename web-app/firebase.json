@@ -44,9 +44,14 @@
       "port": 4000
     }
   },
-  "dataconnect": {
-    "source": "dataconnect"
-  },
+  "dataconnect": [
+    {
+      "source": "dataconnect"
+    },
+    {
+      "source": "dataconnect-goodbooch"
+    }
+  ],
   "storage": {
     "rules": "storage.rules"
   }

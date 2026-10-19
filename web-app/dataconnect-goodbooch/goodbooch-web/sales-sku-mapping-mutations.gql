@@ -1,0 +1,47 @@
+mutation CreateGoodboochSalesSkuMapping(
+  $shopCode: String!
+  $shopeeSku: String!
+  $listingName: String
+  $variantName: String
+  $productSku: String!
+  $stockEffect: String!
+  $quantityPerOrder: Int!
+) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may create sales SKU mappings.") {
+  goodboochSalesSkuMapping_insert(data: {
+    shopCode: $shopCode
+    shopeeSku: $shopeeSku
+    listingName: $listingName
+    variantName: $variantName
+    productSku: $productSku
+    stockEffect: $stockEffect
+    quantityPerOrder: $quantityPerOrder
+    isActive: true
+    createdByUid_expr: "auth.uid"
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation UpdateGoodboochSalesSkuMapping(
+  $id: UUID!
+  $shopCode: String!
+  $shopeeSku: String!
+  $listingName: String
+  $variantName: String
+  $productSku: String!
+  $stockEffect: String!
+  $quantityPerOrder: Int!
+  $isActive: Boolean!
+) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may update sales SKU mappings.") {
+  goodboochSalesSkuMapping_update(key: { id: $id }, data: {
+    shopCode: $shopCode
+    shopeeSku: $shopeeSku
+    listingName: $listingName
+    variantName: $variantName
+    productSku: $productSku
+    stockEffect: $stockEffect
+    quantityPerOrder: $quantityPerOrder
+    isActive: $isActive
+    updatedAt_expr: "request.time"
+  })
+}

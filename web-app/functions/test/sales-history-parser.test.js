@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import test from 'node:test'
 import { parseExpressSalesHistory } from '../src/sales-history-parser.js'
 
-const realFile = new URL('../../../private-data/express-export/raw/express_sales_history_2026-08-14.csv', import.meta.url)
+const realFile = new URL('../../../private-data/express-export/fixtures/express_sales_history_2026-08-14.csv', import.meta.url)
 
 test('parses the real Express Sales History report', () => {
   const result = parseExpressSalesHistory(fs.readFileSync(realFile))

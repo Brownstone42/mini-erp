@@ -9,6 +9,8 @@ mutation CreateQuotation(
   $phoneText: String
   $signatoryId: UUID
   $remarkText: String!
+  $includesShipping: Boolean! = false
+  $shippingAmount: Float! = 0
   $totalAmount: Float!
   $lines: [QuotationLine_Data!]! @allow(
     fields: "quotationNumber lineNumber productCode description unitText quantity unitPrice lineTotal"
@@ -26,6 +28,8 @@ mutation CreateQuotation(
     phoneText: $phoneText
     signatoryId: $signatoryId
     remarkText: $remarkText
+    includesShipping: $includesShipping
+    shippingAmount: $shippingAmount
     totalAmount: $totalAmount
     createdByUid_expr: "auth.uid"
     createdAt_expr: "request.time"

@@ -43,6 +43,7 @@
               <RouterLink to="/master-data/customers" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-users" /> Customer</RouterLink>
               <RouterLink to="/master-data/products" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-box" /> Product</RouterLink>
               <RouterLink to="/master-data/product-categories" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-tags" /> Product Category</RouterLink>
+              <RouterLink to="/master-data/unit-mappings" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-link" /> Unit Mapping</RouterLink>
             </div>
           </section>
 
@@ -68,6 +69,17 @@
               <RouterLink to="/sales/history" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-chart-line" /> Sales History</RouterLink>
               <RouterLink to="/purchases/history" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-shopping-cart" /> Purchase History</RouterLink>
               <RouterLink to="/stock" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-box" /> Stock</RouterLink>
+              <RouterLink to="/pending-orders" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-clock" /> Pending Orders</RouterLink>
+            </div>
+          </section>
+
+          <section>
+            <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="analysisOpen" @click="analysisOpen = !analysisOpen">
+              <span class="flex items-center gap-3"><i class="pi pi-chart-pie" /> Analysis</span>
+              <i class="pi text-xs" :class="analysisOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
+            </button>
+            <div v-show="analysisOpen" class="mt-1 border-l border-surface-200 pl-3">
+              <RouterLink to="/analysis/purchase-planning" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-shopping-bag" /> Purchase Planning</RouterLink>
             </div>
           </section>
 
@@ -83,9 +95,41 @@
           </section>
         </template>
 
-        <div v-else class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-800">
-          โหมด Goodbooch ถูกแยกออกจากข้อมูล Ideal Globe แล้ว เมนูจะเปิดเพิ่มหลังเชื่อมฐานข้อมูลใหม่
-        </div>
+        <template v-else>
+          <section>
+            <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="masterDataOpen" @click="masterDataOpen = !masterDataOpen">
+              <span class="flex items-center gap-3"><i class="pi pi-database" /> Master Data</span>
+              <i class="pi text-xs" :class="masterDataOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
+            </button>
+            <div v-show="masterDataOpen" class="mt-1 border-l border-surface-200 pl-3">
+              <RouterLink to="/goodbooch/products" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-box" /> Product</RouterLink>
+            </div>
+          </section>
+
+          <section>
+            <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="transactionDataOpen" @click="transactionDataOpen = !transactionDataOpen">
+              <span class="flex items-center gap-3"><i class="pi pi-arrow-right-arrow-left" /> Transaction Data</span>
+              <i class="pi text-xs" :class="transactionDataOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
+            </button>
+            <div v-show="transactionDataOpen" class="mt-1 border-l border-surface-200 pl-3">
+              <RouterLink to="/goodbooch/stock" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-box" /> Stock</RouterLink>
+            </div>
+          </section>
+
+          <section>
+            <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">
+              <span class="flex items-center gap-3"><i class="pi pi-cog" /> Settings</span>
+              <i class="pi text-xs" :class="settingsOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
+            </button>
+            <div v-show="settingsOpen" class="mt-1 border-l border-surface-200 pl-3">
+              <RouterLink to="/goodbooch/settings/shopee-sku-mappings" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-100" active-class="bg-primary-50 text-primary-700"><i class="pi pi-link" /> Shopee SKU Mapping</RouterLink>
+            </div>
+          </section>
+
+          <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-800">
+            ข้อมูล Goodbooch อยู่ในฐาน <code>goodboocherp</code> และไม่ใช้ Product Master ร่วมกับ Ideal Globe
+          </div>
+        </template>
       </nav>
     </aside>
 
@@ -139,6 +183,7 @@ export default {
       masterDataOpen: false,
       transactionDataOpen: false,
       reportsOpen: false,
+      analysisOpen: false,
       settingsOpen: false
     }
   },
@@ -150,7 +195,7 @@ export default {
       get() { return this.companyStore.activeCompanyId },
       set(value) {
         this.companyStore.switchCompany(value)
-        this.salesOpen = false; this.masterDataOpen = false; this.transactionDataOpen = false; this.reportsOpen = false; this.settingsOpen = false
+        this.salesOpen = false; this.masterDataOpen = false; this.transactionDataOpen = false; this.reportsOpen = false; this.analysisOpen = false; this.settingsOpen = false
         void this.$router.push(this.companyStore.isIdealGlobe ? { name: 'dashboard' } : { name: 'company-workspace' })
       }
     }
@@ -159,8 +204,12 @@ export default {
     '$route.path'(path) {
       if (path.startsWith('/sales/quotations')) this.salesOpen = true
       if (path.startsWith('/master-data/')) this.masterDataOpen = true
-      if ((path.startsWith('/sales/') && !path.startsWith('/sales/quotations')) || path.startsWith('/purchases/') || path.startsWith('/stock')) this.transactionDataOpen = true
+      if (path.startsWith('/goodbooch/products')) this.masterDataOpen = true
+      if (path.startsWith('/goodbooch/stock')) this.transactionDataOpen = true
+      if (path.startsWith('/goodbooch/settings/')) this.settingsOpen = true
+      if ((path.startsWith('/sales/') && !path.startsWith('/sales/quotations')) || path.startsWith('/purchases/') || path.startsWith('/stock') || path.startsWith('/pending-orders')) this.transactionDataOpen = true
       if (path.startsWith('/reports/')) this.reportsOpen = true
+      if (path.startsWith('/analysis/')) this.analysisOpen = true
       if (path.startsWith('/settings/')) this.settingsOpen = true
     }
   },

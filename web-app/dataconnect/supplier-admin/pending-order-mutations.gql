@@ -1,0 +1,17 @@
+mutation AdminImportPendingOrderSnapshot(
+  $snapshot: PendingOrderSnapshot_Data! @allow(
+    fields: "id sourceFileName sourceFileHash reportDate periodStart periodEnd warehouseFrom warehouseTo customerFrom customerTo lineCount productCount unitMismatchCount importedByUid importedAt"
+  )
+  $lines: [PendingOrderLine_Data!]! @allow(
+    fields: "sourceKey snapshotId sourceRowNumber productCode sourceProductName warehouseCode deliveryDate documentNumber orderDate customerName orderedQuantity sourceUnitText pendingQuantity amount"
+    maxCount: 5000
+  )
+  $products: [PendingOrderProductSummary_Data!]! @allow(
+    fields: "sourceKey snapshotId sourceRowNumber productCode sourceProductName orderedQuantity pendingQuantity amount reportedOnHandQuantity reportedOnHandUnitText reportedPurchaseQuantity"
+    maxCount: 5000
+  )
+) @auth(level: NO_ACCESS) @transaction {
+  importedSnapshot: pendingOrderSnapshot_insert(data: $snapshot)
+  importedLines: pendingOrderLine_insertMany(data: $lines)
+  importedProducts: pendingOrderProductSummary_insertMany(data: $products)
+}

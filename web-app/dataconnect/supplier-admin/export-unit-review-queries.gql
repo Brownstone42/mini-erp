@@ -1,0 +1,10 @@
+query ExportStockAndUnitMappings($stockLimit: Int = 5000, $stockOffset: Int = 0)
+  @auth(level: NO_ACCESS) {
+  stockSnapshots(limit: $stockLimit, offset: $stockOffset, orderBy: { snapshotDate: DESC }) {
+    snapshotDate warehouseFrom warehouseTo productCode quantity sourceUnitText isActive
+  }
+  unitMappings(limit: 1000, orderBy: { sourceUnitText: ASC }) {
+    sourceUnitText standardUnitText
+  }
+}
+

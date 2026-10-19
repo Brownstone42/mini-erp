@@ -7,8 +7,17 @@ const serverOnly = { fetchPolicy: 'SERVER_ONLY' }
 export async function fetchProductGroups() {
   const result = await executeQuery(queryRef(dataConnect, 'ListProductGroups', { limit: 500, offset: 0 }), serverOnly)
   const counts = new Map()
-  ;(result.data?.productGroupItems || []).forEach((item) => counts.set(item.groupId, (counts.get(item.groupId) || 0) + 1))
-  return (result.data?.productGroups || []).map((group) => ({ ...group, productCount: counts.get(group.id) || 0 }))
+  const productCodes = new Map()
+  ;(result.data?.productGroupItems || []).forEach((item) => {
+    counts.set(item.groupId, (counts.get(item.groupId) || 0) + 1)
+    if (!productCodes.has(item.groupId)) productCodes.set(item.groupId, [])
+    productCodes.get(item.groupId).push(item.productCode)
+  })
+  return (result.data?.productGroups || []).map((group) => ({
+    ...group,
+    productCount: counts.get(group.id) || 0,
+    productCodes: productCodes.get(group.id) || []
+  }))
 }
 
 export async function fetchProductGroup(id) {

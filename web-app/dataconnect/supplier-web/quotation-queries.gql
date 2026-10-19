@@ -20,7 +20,7 @@ query GetQuotation($quotationNumber: String!)
   @auth(level: USER, insecureReason: "Authenticated ERP users can reopen an issued quotation and regenerate its PDF from the saved snapshot.") {
   quotation(key: { quotationNumber: $quotationNumber }) {
     quotationNumber quotationDate customerCode customerName
-    addressText email phoneText signatoryId remarkText totalAmount createdAt
+    addressText email phoneText signatoryId remarkText includesShipping shippingAmount totalAmount createdAt
   }
   lines: quotationLines(
     where: { quotationNumber: { eq: $quotationNumber } }
