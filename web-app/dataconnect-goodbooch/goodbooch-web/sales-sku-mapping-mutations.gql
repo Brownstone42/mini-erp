@@ -6,7 +6,7 @@ mutation CreateGoodboochSalesSkuMapping(
   $productSku: String!
   $stockEffect: String!
   $quantityPerOrder: Int!
-) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may create sales SKU mappings.") {
+) @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochSalesSkuMapping_insert(data: {
     shopCode: $shopCode
     shopeeSku: $shopeeSku
@@ -32,7 +32,7 @@ mutation UpdateGoodboochSalesSkuMapping(
   $stockEffect: String!
   $quantityPerOrder: Int!
   $isActive: Boolean!
-) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may update sales SKU mappings.") {
+) @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochSalesSkuMapping_update(key: { id: $id }, data: {
     shopCode: $shopCode
     shopeeSku: $shopeeSku

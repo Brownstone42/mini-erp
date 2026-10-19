@@ -2,15 +2,15 @@ mutation CreateSignatory(
   $id: UUID!
   $fullName: String!
   $phoneText: String
-  $email: String
+  $email: String @retired(reason: "Email now comes from the authenticated Firebase user token.")
   $signaturePath: String
   $stampPath: String
-) @auth(level: USER, insecureReason: "Authenticated ERP administrators may create signatory profiles for company documents.") {
+) @auth(level: USER) {
   signatory_insert(data: {
     id: $id
     fullName: $fullName
     phoneText: $phoneText
-    email: $email
+    email_expr: "auth.token.email"
     signaturePath: $signaturePath
     stampPath: $stampPath
     isActive: true
@@ -21,6 +21,9 @@ mutation CreateSignatory(
 }
 
 mutation SetSignatoryActive($id: UUID!, $isActive: Boolean!)
-  @auth(level: USER, insecureReason: "Authenticated ERP administrators may activate or deactivate signatory profiles.") {
-  signatory_update(id: $id, data: { isActive: $isActive, updatedAt_expr: "request.time" })
+  @auth(level: USER) {
+  signatory_updateMany(
+    where: { id: { eq: $id }, createdByUid: { eq_expr: "auth.uid" } }
+    data: { isActive: $isActive, updatedAt_expr: "request.time" }
+  )
 }

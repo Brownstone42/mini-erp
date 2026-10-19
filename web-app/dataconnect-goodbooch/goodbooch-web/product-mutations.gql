@@ -6,7 +6,7 @@ mutation CreateGoodboochProduct(
   $lowStockThreshold: Int!
   $idealGlobeProductCode: String
   $noteText: String
-) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may create Product Master records.") {
+) @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochProduct_insert(data: {
     sku: $sku
     productName: $productName
@@ -31,7 +31,7 @@ mutation UpdateGoodboochProduct(
   $idealGlobeProductCode: String
   $noteText: String
   $isActive: Boolean!
-) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may update Product Master records.") {
+) @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochProduct_update(key: { sku: $sku }, data: {
     productName: $productName
     inventoryMethod: $inventoryMethod
@@ -54,7 +54,7 @@ mutation RenameGoodboochProduct(
   $idealGlobeProductCode: String
   $noteText: String
   $isActive: Boolean!
-) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may correct Product Master SKU values.") {
+) @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochProduct_insert(data: {
     sku: $newSku
     productName: $productName

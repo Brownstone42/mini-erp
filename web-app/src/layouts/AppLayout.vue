@@ -6,7 +6,7 @@
           <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">Internal</p>
           <h1 class="text-lg font-semibold">{{ activeCompany.shortName }} ERP</h1>
         </div>
-        <label class="mt-3 block">
+        <label v-if="companyOptions.length > 1" class="mt-3 block">
           <span class="mb-1.5 block px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">สลับบริษัท</span>
           <Select v-model="activeCompanyId" :options="companyOptions" option-label="name" option-value="id" class="w-full" size="small" />
         </label>
@@ -164,7 +164,7 @@ import { signOut } from 'firebase/auth'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { firebaseAuth } from '../services/firebase.js'
-import { COMPANY_OPTIONS, useCompanyStore } from '../stores/company.js'
+import { useCompanyStore } from '../stores/company.js'
 
 export default {
   name: 'AppLayout',
@@ -175,8 +175,10 @@ export default {
   },
   data() {
     const email = firebaseAuth.currentUser?.email || ''
+    const companyStore = useCompanyStore()
+    companyStore.configureForUser(email)
     return {
-      companyStore: useCompanyStore(),
+      companyStore,
       userEmail: email,
       userInitial: email.charAt(0).toUpperCase() || 'U',
       salesOpen: false,
@@ -189,7 +191,7 @@ export default {
   },
   computed: {
     activeCompany() { return this.companyStore.activeCompany },
-    companyOptions() { return COMPANY_OPTIONS },
+    companyOptions() { return this.companyStore.companyOptions },
     homeRoute() { return this.companyStore.isIdealGlobe ? { name: 'dashboard' } : { name: 'company-workspace' } },
     activeCompanyId: {
       get() { return this.companyStore.activeCompanyId },

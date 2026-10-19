@@ -5,7 +5,7 @@ mutation CreateGoodboochStockTransaction(
   $quantityChange: Int!
   $unitText: String!
   $noteText: String
-) @auth(level: USER, insecureReason: "Authenticated Goodbooch ERP users may record inventory movements.") {
+) @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochStockTransaction_insert(data: {
     productSku: $productSku
     transactionType: $transactionType

@@ -308,7 +308,9 @@ router.beforeEach(async (to, from) => {
   if (to.name === 'login' && user) return { name: 'dashboard' }
   if (user && !to.meta.public) {
     const companyStore = useCompanyStore(pinia)
+    companyStore.configureForUser(user.email)
     const routeCompany = to.meta.company || 'idealglobe'
+    if (!companyStore.canAccess(routeCompany)) return { name: 'dashboard' }
     if (!companyStore.isIdealGlobe && routeCompany !== 'goodbooch') return { name: 'company-workspace' }
     if (companyStore.isIdealGlobe && routeCompany === 'goodbooch') return { name: 'dashboard' }
   }

@@ -66,15 +66,24 @@ export const health = onRequest({ cors: false }, (request, response) => {
 const SIGNATORY_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
 const SIGNATORY_IMAGE_MAX_BYTES = 5 * 1024 * 1024
 
-function assertSignatoryImagePath(signatoryId, kind, path) {
+function assertSignatoryImagePath(signatoryId, kind, path, auth) {
   if (!path) return null
   const normalizedId = String(signatoryId || '').trim()
   const normalizedPath = String(path || '').trim()
-  const pathMatch = normalizedPath.match(new RegExp(`^settings/signatories/([0-9a-f-]+)/${kind}\\.(png|jpe?g|webp)$`, 'i'))
+  const legacyMatch = normalizedPath.match(new RegExp(`^settings/signatories/([0-9a-f-]+)/${kind}\\.(png|jpe?g|webp)$`, 'i'))
+  const userMatch = normalizedPath.match(new RegExp(`^settings/signatories/users/([^/]+)/([0-9a-f-]+)/${kind}\\.(png|jpe?g|webp)$`, 'i'))
+  const pathMatch = legacyMatch || userMatch
   const comparableId = normalizedId.replaceAll('-', '').toLowerCase()
-  const comparablePathId = String(pathMatch?.[1] || '').replaceAll('-', '').toLowerCase()
+  const comparablePathId = String(userMatch?.[2] || legacyMatch?.[1] || '').replaceAll('-', '').toLowerCase()
   if (!/^[0-9a-f]{32}$/.test(comparableId) || comparablePathId !== comparableId) {
     throw new HttpsError('invalid-argument', 'เส้นทางรูปกรรมการลงนามไม่ถูกต้อง')
+  }
+  const requesterEmail = String(auth?.token?.email || '').trim().toLowerCase()
+  if (legacyMatch && requesterEmail !== 'anawatbooch@gmail.com') {
+    throw new HttpsError('permission-denied', 'บัญชีนี้ไม่มีสิทธิ์ใช้รูปกรรมการลงนามรายการนี้')
+  }
+  if (userMatch && userMatch[1] !== auth?.uid) {
+    throw new HttpsError('permission-denied', 'บัญชีนี้ไม่มีสิทธิ์ใช้รูปกรรมการลงนามรายการนี้')
   }
   return normalizedPath
 }
@@ -101,8 +110,8 @@ export const loadSignatoryPdfImages = onCall({ cors: true, maxInstances: 5 }, as
 
   const { signatoryId, signaturePath, stampPath } = request.data || {}
   try {
-    const safeSignaturePath = assertSignatoryImagePath(signatoryId, 'signature', signaturePath)
-    const safeStampPath = assertSignatoryImagePath(signatoryId, 'stamp', stampPath)
+    const safeSignaturePath = assertSignatoryImagePath(signatoryId, 'signature', signaturePath, request.auth)
+    const safeStampPath = assertSignatoryImagePath(signatoryId, 'stamp', stampPath, request.auth)
     if (!safeSignaturePath) throw new HttpsError('failed-precondition', 'กรรมการคนนี้ยังไม่มีรูปลายเซ็น')
     const [signatureDataUrl, stampDataUrl] = await Promise.all([
       storageImageDataUrl(safeSignaturePath),

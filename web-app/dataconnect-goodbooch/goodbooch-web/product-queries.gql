@@ -1,5 +1,5 @@
 query ListGoodboochProducts($limit: Int = 1000, $offset: Int = 0)
-  @auth(level: USER, insecureReason: "Goodbooch Product Master is readable only by authenticated ERP users.") {
+  @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochProducts(limit: $limit, offset: $offset, orderBy: { sku: ASC }) {
     sku
     productName
@@ -15,7 +15,7 @@ query ListGoodboochProducts($limit: Int = 1000, $offset: Int = 0)
 }
 
 query GetGoodboochProduct($sku: String!)
-  @auth(level: USER, insecureReason: "Goodbooch Product Master is readable only by authenticated ERP users.") {
+  @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochProduct(key: { sku: $sku }) {
     sku
     productName

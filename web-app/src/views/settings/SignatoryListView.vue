@@ -22,7 +22,7 @@
         </label>
         <label class="block">
           <span class="mb-2 block text-sm font-medium text-surface-600">Email</span>
-          <InputText v-model="form.email" type="email" class="w-full" />
+          <InputText v-model="form.email" type="email" class="w-full" disabled />
         </label>
       </div>
 
@@ -77,6 +77,7 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { createSignatory, fetchSignatories, setSignatoryActive } from '../../services/signatory-data.js'
+import { firebaseAuth } from '../../services/firebase.js'
 
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
@@ -85,14 +86,15 @@ export default {
   name: 'SignatoryListView',
   components: { Button, Column, DataTable, InputText, Message, Tag },
   data() {
+    const userEmail = firebaseAuth.currentUser?.email || ''
     return {
-      signatories: [], form: { fullName: '', phoneText: '', email: '' },
+      signatories: [], form: { fullName: '', phoneText: '', email: userEmail },
       signatureFile: null, stampFile: null, signaturePreview: '', stampPreview: '',
       loading: true, saving: false, error: '', message: ''
     }
   },
   computed: {
-    canSave() { return Boolean(this.form.fullName.trim()) && !this.saving }
+    canSave() { return Boolean(this.form.fullName.trim() && this.form.email) && !this.saving }
   },
   async mounted() { await this.load() },
   beforeUnmount() { this.revokePreview('signature'); this.revokePreview('stamp'); this.revokeStoredUrls() },
@@ -135,7 +137,7 @@ export default {
       if (!this.canSave) return
       this.saving = true; this.error = ''; this.message = ''
       try {
-        await createSignatory({ ...this.form, signatureFile: this.signatureFile, stampFile: this.stampFile })
+        await createSignatory({ fullName: this.form.fullName, phoneText: this.form.phoneText, signatureFile: this.signatureFile, stampFile: this.stampFile })
         this.message = 'บันทึกกรรมการลงนามแล้ว'
         this.resetForm()
         await this.load()
@@ -143,7 +145,7 @@ export default {
       finally { this.saving = false }
     },
     resetForm() {
-      this.form = { fullName: '', phoneText: '', email: '' }
+      this.form = { fullName: '', phoneText: '', email: firebaseAuth.currentUser?.email || '' }
       this.signatureFile = null; this.stampFile = null
       this.revokePreview('signature'); this.revokePreview('stamp')
       if (this.$refs.signatureInput) this.$refs.signatureInput.value = ''

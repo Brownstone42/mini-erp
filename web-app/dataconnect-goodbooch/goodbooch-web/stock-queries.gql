@@ -1,5 +1,5 @@
 query ListGoodboochStockTransactions($limit: Int = 1000, $offset: Int = 0)
-  @auth(level: USER, insecureReason: "Goodbooch stock transactions are readable only by authenticated ERP users.") {
+  @auth(expr: "auth.token.email == 'anawatbooch@gmail.com'") {
   goodboochStockTransactions(limit: $limit, offset: $offset, orderBy: { createdAt: DESC }) {
     id
     productSku

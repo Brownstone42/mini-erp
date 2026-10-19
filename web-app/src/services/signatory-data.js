@@ -1,7 +1,7 @@
 import { executeMutation, executeQuery, getDataConnect, mutationRef, queryRef } from 'firebase/data-connect'
 import { deleteObject, getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage'
 import { httpsCallable } from 'firebase/functions'
-import { firebaseApp, firebaseFunctions } from './firebase.js'
+import { firebaseApp, firebaseAuth, firebaseFunctions } from './firebase.js'
 
 const dataConnect = getDataConnect(firebaseApp, { connector: 'supplier-web', service: 'mini-erp-service', location: 'asia-southeast1' })
 const storage = getStorage(firebaseApp)
@@ -41,12 +41,14 @@ function extension(file) {
 
 async function uploadImage(id, kind, file) {
   if (!file) return null
-  const path = `settings/signatories/${id}/${kind}.${extension(file)}`
+  const uid = firebaseAuth.currentUser?.uid
+  if (!uid) throw new Error('AUTH_REQUIRED')
+  const path = `settings/signatories/users/${uid}/${id}/${kind}.${extension(file)}`
   await uploadBytes(ref(storage, path), file, { contentType: file.type, cacheControl: 'private,max-age=3600' })
   return path
 }
 
-export async function createSignatory({ fullName, phoneText, email, signatureFile, stampFile }) {
+export async function createSignatory({ fullName, phoneText, signatureFile, stampFile }) {
   const id = crypto.randomUUID()
   const uploadedPaths = []
   try {
@@ -58,7 +60,6 @@ export async function createSignatory({ fullName, phoneText, email, signatureFil
       id,
       fullName: fullName.trim(),
       phoneText: phoneText.trim() || null,
-      email: email.trim() || null,
       signaturePath,
       stampPath
     }))
