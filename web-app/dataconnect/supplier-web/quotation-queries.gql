@@ -1,5 +1,5 @@
 query LatestQuotationForMonth($rangeStart: String!, $rangeEnd: String!)
-  @auth(level: USER, insecureReason: "Authenticated ERP users need the latest monthly running number before issuing a quotation.") {
+  @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") {
   quotations(
     where: { quotationNumber: { ge: $rangeStart, le: $rangeEnd } }
     limit: 1
@@ -10,14 +10,14 @@ query LatestQuotationForMonth($rangeStart: String!, $rangeEnd: String!)
 }
 
 query ListQuotations($limit: Int = 100, $offset: Int = 0)
-  @auth(level: USER, insecureReason: "Quotations are shared company documents readable by authenticated ERP users.") {
+  @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") {
   quotations(limit: $limit, offset: $offset, orderBy: { quotationNumber: DESC }) {
     quotationNumber quotationDate customerCode customerName totalAmount createdAt
   }
 }
 
 query GetQuotation($quotationNumber: String!)
-  @auth(level: USER, insecureReason: "Authenticated ERP users can reopen an issued quotation and regenerate its PDF from the saved snapshot.") {
+  @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") {
   quotation(key: { quotationNumber: $quotationNumber }) {
     quotationNumber quotationDate customerCode customerName
     addressText email phoneText signatoryId remarkText includesShipping shippingAmount totalAmount createdAt
@@ -32,7 +32,7 @@ query GetQuotation($quotationNumber: String!)
 }
 
 query GetQuotationByRequestId($requestId: UUID!)
-  @auth(level: USER, insecureReason: "Authenticated ERP users use the client request ID to safely recover an issued quotation after an uncertain network response.") {
+  @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") {
   quotations(where: { requestId: { eq: $requestId } }, limit: 1) {
     quotationNumber
   }

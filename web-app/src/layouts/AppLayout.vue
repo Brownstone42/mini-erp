@@ -23,7 +23,7 @@
         </RouterLink>
 
         <template v-if="companyStore.isIdealGlobe">
-          <section>
+          <section v-if="canAccessModule('sales')">
             <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="salesOpen" @click="salesOpen = !salesOpen">
               <span class="flex items-center gap-3"><i class="pi pi-file-edit" /> Sales</span>
               <i class="pi text-xs" :class="salesOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
@@ -33,7 +33,7 @@
             </div>
           </section>
 
-          <section>
+          <section v-if="canAccessModule('master-data')">
             <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="masterDataOpen" @click="masterDataOpen = !masterDataOpen">
               <span class="flex items-center gap-3"><i class="pi pi-database" /> Master Data</span>
               <i class="pi text-xs" :class="masterDataOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
@@ -47,7 +47,7 @@
             </div>
           </section>
 
-          <section>
+          <section v-if="canAccessModule('reports')">
             <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="reportsOpen" @click="reportsOpen = !reportsOpen">
               <span class="flex items-center gap-3"><i class="pi pi-chart-bar" /> Reports</span>
               <i class="pi text-xs" :class="reportsOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
@@ -60,7 +60,7 @@
             </div>
           </section>
 
-          <section>
+          <section v-if="canAccessModule('transaction-data')">
             <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="transactionDataOpen" @click="transactionDataOpen = !transactionDataOpen">
               <span class="flex items-center gap-3"><i class="pi pi-arrow-right-arrow-left" /> Transaction Data</span>
               <i class="pi text-xs" :class="transactionDataOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
@@ -73,7 +73,7 @@
             </div>
           </section>
 
-          <section>
+          <section v-if="canAccessModule('analysis')">
             <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="analysisOpen" @click="analysisOpen = !analysisOpen">
               <span class="flex items-center gap-3"><i class="pi pi-chart-pie" /> Analysis</span>
               <i class="pi text-xs" :class="analysisOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
@@ -83,7 +83,7 @@
             </div>
           </section>
 
-          <section>
+          <section v-if="canAccessModule('settings')">
             <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">
               <span class="flex items-center gap-3"><i class="pi pi-cog" /> Settings</span>
               <i class="pi text-xs" :class="settingsOpen ? 'pi-chevron-up' : 'pi-chevron-down'" />
@@ -165,6 +165,7 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { firebaseAuth } from '../services/firebase.js'
 import { useCompanyStore } from '../stores/company.js'
+import { canAccessModule as userCanAccessModule } from '../config/access-control.js'
 
 export default {
   name: 'AppLayout',
@@ -216,6 +217,9 @@ export default {
     }
   },
   methods: {
+    canAccessModule(moduleId) {
+      return userCanAccessModule(this.userEmail, moduleId)
+    },
     async logout() {
       await signOut(firebaseAuth)
       await this.$router.replace({ name: 'login' })

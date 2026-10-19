@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { buildPendingOrdersPreview } from './pending-orders-preview.js'
 
-const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com'])
+const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com', 'idealglobe.account@gmail.com'])
 
 export function assertPendingOrdersImportAdmin(auth) {
   const email = auth?.token?.email?.toLowerCase()

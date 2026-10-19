@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { buildSalesHistoryPreview } from './sales-history-preview.js'
 
-const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com'])
+const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com', 'idealglobe.account@gmail.com'])
 const IMPORT_BATCH_SIZE = 5000
 
 export function assertSalesHistoryImportAdmin(auth) {

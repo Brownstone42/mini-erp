@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { buildCustomerPreview } from './customer-preview.js'
 
-const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com'])
+const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com', 'idealglobe.account@gmail.com'])
 
 export function assertCustomerImportAdmin(auth) {
   const email = auth?.token?.email?.toLowerCase()

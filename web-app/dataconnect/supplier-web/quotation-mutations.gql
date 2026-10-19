@@ -16,7 +16,7 @@ mutation CreateQuotation(
     fields: "quotationNumber lineNumber productCode description unitText quantity unitPrice lineTotal"
     maxCount: 100
   )
-) @auth(level: USER, insecureReason: "Authenticated ERP users are allowed to issue shared company quotations.") @transaction {
+) @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") @transaction {
   quotation_insert(data: {
     quotationNumber: $quotationNumber
     requestId: $requestId

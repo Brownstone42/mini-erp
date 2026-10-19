@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { firebaseAuth } from '../services/firebase.js'
 import { useCompanyStore } from '../stores/company.js'
 import { pinia } from '../stores/pinia.js'
+import { canAccessModule } from '../config/access-control.js'
 
 const AppLayout = () => import('../layouts/AppLayout.vue')
 const LoginView = () => import('../views/auth/LoginView.vue')
@@ -297,6 +298,17 @@ function getCurrentUser() {
   })
 }
 
+function routeModule(path) {
+  if (path.startsWith('/goodbooch/') || path === '/company') return 'goodbooch'
+  if (path.startsWith('/master-data/')) return 'master-data'
+  if (path.startsWith('/sales/history') || path.startsWith('/purchases/history') || path.startsWith('/stock') || path.startsWith('/pending-orders')) return 'transaction-data'
+  if (path.startsWith('/sales/quotations')) return 'sales'
+  if (path.startsWith('/reports/')) return 'reports'
+  if (path.startsWith('/analysis/')) return 'analysis'
+  if (path.startsWith('/settings/')) return 'settings'
+  return 'dashboard'
+}
+
 router.beforeEach(async (to, from) => {
   const scrollKey = from.meta.scrollKey
   if (scrollKey && to.meta.returnScrollKey === scrollKey) {
@@ -311,6 +323,7 @@ router.beforeEach(async (to, from) => {
     companyStore.configureForUser(user.email)
     const routeCompany = to.meta.company || 'idealglobe'
     if (!companyStore.canAccess(routeCompany)) return { name: 'dashboard' }
+    if (routeCompany === 'idealglobe' && !canAccessModule(user.email, routeModule(to.path))) return { name: 'dashboard' }
     if (!companyStore.isIdealGlobe && routeCompany !== 'goodbooch') return { name: 'company-workspace' }
     if (companyStore.isIdealGlobe && routeCompany === 'goodbooch') return { name: 'dashboard' }
   }

@@ -3,7 +3,7 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import { adminGetImportRunByHash } from './dataconnect-admin-generated/esm/index.esm.js'
 import { buildSupplierPreview } from './supplier-preview.js'
 
-const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com'])
+const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com', 'idealglobe.account@gmail.com'])
 
 export function assertSupplierImportAdmin(auth) {
   const email = auth?.token?.email?.toLowerCase()

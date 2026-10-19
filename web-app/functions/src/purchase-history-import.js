@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { buildPurchaseHistoryPreview } from './purchase-history-preview.js'
 
-const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com'])
+const ADMIN_EMAILS = new Set(['anawatbooch@gmail.com', 'idealglobe.account@gmail.com'])
 export function assertPurchaseHistoryImportAdmin(auth) {
   const email = auth?.token?.email?.toLowerCase()
   if (!auth || !email || !ADMIN_EMAILS.has(email)) throw new HttpsError('permission-denied', 'บัญชีนี้ไม่มีสิทธิ์ Import Purchase History')

@@ -5,7 +5,7 @@ mutation CreateSignatory(
   $email: String @retired(reason: "Email now comes from the authenticated Firebase user token.")
   $signaturePath: String
   $stampPath: String
-) @auth(level: USER) {
+) @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") {
   signatory_insert(data: {
     id: $id
     fullName: $fullName
@@ -21,7 +21,7 @@ mutation CreateSignatory(
 }
 
 mutation SetSignatoryActive($id: UUID!, $isActive: Boolean!)
-  @auth(level: USER) {
+  @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") {
   signatory_updateMany(
     where: { id: { eq: $id }, createdByUid: { eq_expr: "auth.uid" } }
     data: { isActive: $isActive, updatedAt_expr: "request.time" }

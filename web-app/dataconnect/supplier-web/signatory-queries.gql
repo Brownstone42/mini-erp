@@ -1,5 +1,5 @@
 query ListSignatories($limit: Int = 100, $offset: Int = 0)
-  @auth(level: USER) {
+  @auth(expr: "auth.token.firebase.sign_in_provider != 'anonymous' && auth.token.email != 'idealglobe.account@gmail.com'") {
   signatories(where: { createdByUid: { eq_expr: "auth.uid" } }, limit: $limit, offset: $offset, orderBy: { fullName: ASC }) {
     id fullName phoneText email signaturePath stampPath isActive createdAt updatedAt
   }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useCompanyStore } from './company.js'
+import { allowedModuleIdsForEmail, canAccessModule } from '../config/access-control.js'
 
 describe('company mode store', () => {
   beforeEach(() => {
@@ -29,5 +30,13 @@ describe('company mode store', () => {
     store.switchCompany('goodbooch')
     expect(store.activeCompanyId).toBe('idealglobe')
     expect(store.companyOptions.map((company) => company.id)).toEqual(['idealglobe'])
+  })
+
+  it('limits the accounting user to Master Data and Transaction Data', () => {
+    expect(allowedModuleIdsForEmail('idealglobe.account@gmail.com')).toEqual(['dashboard', 'master-data', 'transaction-data'])
+    expect(canAccessModule('idealglobe.account@gmail.com', 'master-data')).toBe(true)
+    expect(canAccessModule('idealglobe.account@gmail.com', 'transaction-data')).toBe(true)
+    expect(canAccessModule('idealglobe.account@gmail.com', 'reports')).toBe(false)
+    expect(canAccessModule('idealglobe.account@gmail.com', 'settings')).toBe(false)
   })
 })
